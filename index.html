@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#05050a">
-  <meta name="description" content="LUCINET Seedspace: Wirf Lichtkapseln in den Raum. Am Ende formst du aus deinem eigenen Text eine Kugel mit herunterladbarem Code.">
+  <meta name="description" content="LUCINET Seedspace: Wirf Lichtkapseln in den Raum. Forme am Ende eine eigene rote Kugel und entdecke nach ihrem Wurf deinen Wunschprozess.">
   <meta property="og:title" content="LUCINET / SEEDSPACE">
-  <meta property="og:description" content="Fünf Kugeln öffnen Juris Projektuniversum. Die nächste Kugel formst du selbst: Text hinein, Code und JSON heraus.">
+  <meta property="og:description" content="Fünf Kugeln öffnen Juris Projektuniversum. Forme eine eigene rote Kugel, wirf sie und lass deinen Text im Raum wachsen.">
   <meta property="og:type" content="website">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
   <title>LUCINET / SEEDSPACE</title>
   <link rel="stylesheet" href="./style.css">
-  <script type="module" src="./app.js?v=4"></script>
+  <script type="module" src="./app.js?v=5"></script>
 </head>
 <body>
   <a class="skip" href="#room">Direkt zum Raum</a>
@@ -49,24 +49,25 @@
       <details><summary>Technischer Bauplan</summary><pre id="manifest-preview"></pre></details>
     </aside>
     <div class="story-rail" aria-hidden="true"><span id="story-counter">01 / 05</span><p id="story-prompt">Nimm die Kugel.</p></div>
-    <button id="wish-open" class="wish-open" type="button" hidden><span>✧</span><strong>Jetzt deine Kugel formen</strong><small>Text hinein · Code heraus</small></button>
+    <button id="wish-open" class="wish-open" type="button" hidden><span>✧</span><strong>Deine rote Kugel füllen</strong><small>Schreib deinen Wunsch · dann wirf ihn</small></button>
     <section id="wishwell" class="wishwell" role="dialog" aria-modal="true" aria-labelledby="wish-title" hidden>
       <div class="wish-shell">
         <button id="wish-close" class="wish-close" type="button" aria-label="Wunschbrunnen schließen">×</button>
-        <div class="wish-heading"><span class="wish-kicker">LUCINET / WUNSCHBRUNNEN</span><h2 id="wish-title">Deine Sprache.<br><em>Deine Kugel.</em></h2><p>Schreib eine Idee oder füge längeren Text ein. Der Raum bindet die Quelle, zerlegt erkennbare Strukturen und baut daraus einen eigenständigen Browser-Prototyp. Das gesamte Paket kannst du als JSON herunterladen.</p></div>
+        <div class="wish-heading"><span class="wish-kicker">LUCINET / WUNSCHBRUNNEN</span><h2 id="wish-title">Deine Sprache.<br><em>Deine Kugel.</em></h2><p id="wish-intro">Schreib einen Wunsch oder füge eigenen Text ein. Daraus entsteht eine rote Kugel. Greif sie danach und wirf sie in den Raum: Erst dort entfaltet sich dein Text.</p></div>
         <form id="wish-form" class="wish-form">
           <label for="wish-text">Was soll aus der Kugel entstehen?</label>
           <textarea id="wish-text" maxlength="500000" placeholder="Zum Beispiel: Baue eine Aufgabenliste für meine Reise.&#10;- Tickets prüfen&#10;- Tasche packen&#10;&#10;Oder füge Kapitel aus einem eigenen Buch ein."></textarea>
-          <div class="wish-form-foot"><span id="wish-count">0 / 500.000 Zeichen</span><button id="wish-build" type="submit"><span aria-hidden="true">✦</span> Kugel formen</button></div>
+          <div class="wish-form-foot"><span id="wish-count">0 / 500.000 Zeichen</span><button id="wish-build" type="submit"><span aria-hidden="true">✦</span> Rote Kugel füllen</button></div>
         </form>
         <p id="wish-error" class="wish-error" role="alert" hidden></p>
         <div id="wish-result" class="wish-result" aria-live="polite" hidden>
-          <div class="wish-result-head"><div class="wish-result-orb" aria-hidden="true">✧</div><div><span class="wish-kicker">TEXT → STRUKTUR → CODE</span><h3 id="wish-result-title"></h3><p id="wish-result-summary"></p></div></div>
+          <div class="wish-result-head"><div class="wish-result-node" aria-hidden="true">{ }</div><div><span class="wish-kicker">DEIN WUNSCHPROZESS / TEXT → STRUKTUR → CODE</span><h3 id="wish-result-title"></h3><p id="wish-result-summary"></p></div></div>
           <div class="wish-result-grid"><div><strong>Erkannte Signale</strong><div id="wish-signals" class="wish-chips"></div></div><div><strong>Offene Anschlüsse</strong><p id="wish-open-edges"></p></div><div class="wish-trace"><strong>Aus dem Text gelesen</strong><ol id="wish-requirements"></ol></div></div>
-          <details class="wish-code"><summary>Erzeugten Code ansehen</summary><pre id="wish-code-preview"></pre></details>
-          <div class="wish-actions"><button id="wish-download-json" type="button">JSON herunterladen</button><button id="wish-download-html" type="button">HTML herunterladen</button></div>
+          <details class="wish-code"><summary>Wunschprozess als JSON ansehen</summary><pre id="wish-json-preview"></pre></details>
+          <details class="wish-code"><summary>Erzeugten Programmcode ansehen</summary><pre id="wish-code-preview"></pre></details>
+          <div class="wish-actions"><button id="wish-run" type="button">Ausführung im Raum zeigen</button><button id="wish-download-json" type="button">Wunschprozess als JSON</button><button id="wish-download-html" type="button">Ausführbare HTML herunterladen</button><button id="wish-new" type="button">Neuen Wunsch schreiben</button></div>
         </div>
-        <p class="wish-local-note">Die Eingabe wird hier im Browser verarbeitet. Der Generator wählt eine passende lokale Vorlage; weitere Funktionen stehen als offene Anschlüsse im JSON.</p>
+        <p class="wish-local-note">Nach dem Wurf verarbeitet der Browser nur deinen eingegebenen Text. Der Prozesscode entsteht aus einer lokalen Vorlage; nicht umgesetzte Funktionen bleiben im JSON als offene Anschlüsse sichtbar.</p>
       </div>
     </section>
     <nav class="dock" aria-label="Lichtkapseln"><div id="capsules" class="capsules"></div></nav>

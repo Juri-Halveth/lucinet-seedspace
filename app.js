@@ -47,6 +47,9 @@ let progress = 0;
 let panelOpen = false;
 let focusedId = null;
 let lastWish = null;
+let wishDraft = '';
+let wishThrown = false;
+const wishBlueprint = {id:'wish',label:'DEIN WUNSCH',kind:'wish',tone:'#ff315b',icon:'✦'};
 
 $('#manifest-preview').textContent = JSON.stringify({
   schema: BLUEPRINT_VERSION,
@@ -81,6 +84,19 @@ function renderCapsules() {
     });
     capsules.append(button);
   }
+  if (progress === blueprints.length && wishDraft) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'capsule is-next wish-capsule';
+    button.dataset.id = wishBlueprint.id;
+    button.style.setProperty('--tone',wishBlueprint.tone);
+    button.setAttribute('aria-label','Deine rote Wunschkugel. Greifen und in den Raum ziehen oder antippen und Zielpunkt wählen.');
+    button.setAttribute('aria-pressed','false');
+    button.innerHTML = '<span class="orb"><span>✦</span></span><span class="capsule-name">DEIN WUNSCH</span>';
+    button.addEventListener('pointerdown', event => startDrag(event,wishBlueprint,button));
+    button.addEventListener('click', () => { if (Date.now() >= suppressClickUntil) selectCapsule(wishBlueprint); });
+    capsules.append(button);
+  }
 }
 
 function updateStory() {
@@ -90,14 +106,15 @@ function updateStory() {
     'Die rote will etwas sagen.',
     'Was steckt in der nächsten?',
     'Zum Schluss: alles verbinden.',
-    'Fünf Kugeln. Jetzt bist du dran.'
+    wishThrown ? 'Dein Wunsch lebt im Raum.' : wishDraft ? 'Wirf deine rote Kugel.' : 'Jetzt ist deine Kugel dran.'
   ];
   storyPrompt.textContent = prompts[progress];
   storyCounter.textContent = progress === blueprints.length ? '∞ / 05' : String(progress + 1).padStart(2, '0') + ' / 05';
   room.dataset.stage = String(progress);
   openingHint.hidden = progress > 0;
-  $('.story-rail').hidden = progress === 0 || progress === blueprints.length;
-  wishOpen.hidden = progress !== blueprints.length;
+  $('.story-rail').hidden = progress === 0 || (progress === blueprints.length && !wishDraft);
+  wishOpen.hidden = progress !== blueprints.length || !!wishDraft;
+  room.dataset.wish = wishThrown ? 'thrown' : wishDraft ? 'ready' : 'empty';
   selected = null;
   room.classList.remove('has-selection');
   targetPreview.classList.remove('visible');
@@ -183,6 +200,8 @@ function sceneMarkup(blueprint, variant) {
     }
     case 'projects':
       return `<article class="scene-card universe-card"><span class="scene-index">05 / JURIS PROJEKTUNIVERSUM</span><h2>Wer Verbindungen baut,<br><em>baut Welten.</em></h2><div class="universe-map" aria-label="Juri verbindet HALVETH, LUCINET, RED ROOM, Spielwelten und Connectoren"><div class="universe-core">J</div><span class="map-node n1">HALVETH</span><span class="map-node n2">LUCINET</span><span class="map-node n3">RED ROOM</span><span class="map-node n4">SPIELWELTEN</span><span class="map-node n5">CONNECTORS</span></div><p>Forschung · Grafik · Spiele · Code · Verbindungen</p></article>`;
+    case 'wish':
+      return `<article class="scene-card wish-scene"><span class="scene-index">DEIN WURF / DEIN TEXT</span><div class="wish-scene-star" aria-hidden="true">✦</div><h2>${safe(lastWish?.analysis.title || 'Dein Wunsch')}</h2><p class="wish-scene-kind">${safe(lastWish?.analysis.modeLabel || 'Wunschprozess')} · Prozess läuft</p><label for="wish-scene-search">In deinem Text suchen</label><input id="wish-scene-search" type="search" placeholder="Wort oder Gedanke"><div class="wish-scene-content" aria-live="polite"></div><details class="wish-original"><summary>Deinen vollständigen Text ansehen</summary><pre></pre></details><button class="wish-process-open" type="button">Wunschprozess und Code öffnen</button></article>`;
     default: throw new Error('Unregistered renderer');
   }
 }
@@ -213,7 +232,7 @@ function updateLayers() {
 function saveRoom() {
   try {
     const rect = room.getBoundingClientRect();
-    localStorage.setItem(STORAGE_KEY, encodeRoom(instances,rect.width,rect.height));
+    localStorage.setItem(STORAGE_KEY, encodeRoom(instances.filter(item => item.blueprint.id !== 'wish'),rect.width,rect.height));
   } catch { say('Raum funktioniert weiter; lokales Speichern ist hier nicht verfügbar.'); }
 }
 
@@ -230,7 +249,7 @@ function toggleInstance(id) {
 }
 
 function positionNode(node,x,y,rect) {
-  const preferredWidths = {origin:[310,.78],signal:[330,.82],scarlet:[330,.82],wonder:[320,.82],universe:[450,.88]};
+  const preferredWidths = {origin:[310,.78],signal:[330,.82],scarlet:[330,.82],wonder:[320,.82],universe:[450,.88],wish:[460,.9]};
   const [pixels, ratio] = preferredWidths[node.dataset.blueprintId] || [330,.82];
   const width = Math.min(pixels, rect.width <= 580 ? rect.width - 28 : rect.width * ratio);
   const left = Math.max(12, Math.min(rect.width - width - 12, x - width/2));
@@ -238,7 +257,7 @@ function positionNode(node,x,y,rect) {
   node.style.setProperty('--body-offset', `${left - x}px`);
   node.style.setProperty('--growth-origin', `${Math.max(0,Math.min(100,(x-left)/width*100))}%`);
   const mobile = rect.width <= 580;
-  const sceneHeight = {origin:290,signal:335,scarlet:290,wonder:270,universe:395}[node.dataset.blueprintId] || 335;
+  const sceneHeight = {origin:290,signal:335,scarlet:290,wonder:270,universe:395,wish:430}[node.dataset.blueprintId] || 335;
   const above = y - (mobile ? 62 : 24);
   const below = rect.height - y - (mobile ? 112 : 24);
   const growDown = mobile ? (below >= sceneHeight || below > above) && above < sceneHeight : y < 240;
@@ -259,6 +278,47 @@ function removePrevious(blueprintId) {
   }
 }
 
+function installWishScene(node) {
+  const content = node.querySelector('.wish-scene-content');
+  const search = node.querySelector('#wish-scene-search');
+  const result = lastWish;
+  const source = result.source.normalizedText;
+  node.querySelector('.wish-original pre').textContent = result.source.originalText;
+  const sections = result.analysis.sections.map(section => ({title:section.title,text:source.slice(section.start,section.end).trim()}));
+  const taskLines = source.split('\n').map(line => /^\s*(?:[-*•]|\d+[.)])\s+(.{2,200})\s*$/u.exec(line)?.[1]?.trim()).filter(Boolean);
+  let tasks = taskLines.map(text => ({text,done:false}));
+  function render() {
+    content.replaceChildren();
+    const query = search.value.toLocaleLowerCase();
+    if (result.analysis.mode === 'tasks' && tasks.length) {
+      for (const item of tasks) {
+        if (!item.text.toLocaleLowerCase().includes(query)) continue;
+        const label=document.createElement('label'); label.className='wish-scene-task';
+        const checkbox=document.createElement('input'); checkbox.type='checkbox'; checkbox.checked=item.done;
+        checkbox.addEventListener('change', () => { item.done=checkbox.checked; label.classList.toggle('done',item.done); });
+        const span=document.createElement('span'); span.textContent=item.text; label.append(checkbox,span); content.append(label);
+      }
+    } else {
+      for (const section of sections) {
+        if (!(section.title+' '+section.text).toLocaleLowerCase().includes(query)) continue;
+        const article=document.createElement('article'); article.className='wish-scene-section';
+        const heading=document.createElement('strong'); heading.textContent=section.title;
+        const body=document.createElement('p'); body.textContent=section.text;
+        article.append(heading,body); content.append(article);
+      }
+    }
+    if (!content.children.length) { const empty=document.createElement('p'); empty.textContent='Keine Treffer.'; content.append(empty); }
+  }
+  search.addEventListener('input',render);
+  node.querySelector('.wish-process-open').addEventListener('click', event => {
+    event.stopPropagation();
+    if (!lastWish || !wishThrown) return;
+    showWishResult(lastWish);
+    setWishwell(true,'process');
+  });
+  render();
+}
+
 function materialize(blueprint,x,y,{id=nextId++,visible=true,variant=0,animate=true,persist=true}={}) {
   const rect = room.getBoundingClientRect();
   removePrevious(blueprint.id);
@@ -276,6 +336,7 @@ function materialize(blueprint,x,y,{id=nextId++,visible=true,variant=0,animate=t
   node.hidden=!visible;
   node.querySelector('.anchor').addEventListener('click', event => { event.stopPropagation(); focusedId=id; updateLayers(); say(`${blueprint.label} geöffnet.`); });
   node.querySelector('.object-hide').addEventListener('click', event => { event.stopPropagation(); toggleInstance(id); });
+  if (blueprint.id === 'wish') installWishScene(node);
   updateLayers();
   if (animate) {
     const pulse = document.createElement('span'); pulse.className='ground-pulse'; pulse.style.left=`${x}px`; pulse.style.top=`${y}px`; pulse.style.setProperty('--tone',blueprint.tone); world.append(pulse); instance.pulse=pulse;
@@ -320,6 +381,15 @@ async function place(blueprint, clientX, clientY, fromX, fromY) {
   const rect = room.getBoundingClientRect();
   const x = clientX - rect.left;
   const y = clientY - rect.top;
+  if (blueprint.id === 'wish') {
+    try { lastWish = compileWish(wishDraft); }
+    catch (error) { say(error.message); return; }
+    wishThrown = true;
+    materialize(blueprint,x,y);
+    updateStory();
+    say('Dein Wunsch ist im Raum erschienen. Öffne danach den getrennten Wunschprozess für Code und JSON.');
+    return;
+  }
   const variant = blueprint.id === 'scarlet' ? (x >= rect.width/2 ? 2 : 0) + (y >= rect.height/2 ? 1 : 0) : Math.floor(Math.random() * 3);
   materialize(blueprint,x,y,{variant});
   if (blueprints[progress]?.id === blueprint.id) {
@@ -331,7 +401,7 @@ async function place(blueprint, clientX, clientY, fromX, fromY) {
 
 room.addEventListener('click', event => {
   if (event.target.closest('.chrome, .dock, .help-panel, .layers-panel, .world-object, .wish-open, .wishwell')) return;
-  if (!selected) { say('Nimm unten eine der leuchtenden Kugeln.'); return; }
+  if (!selected) { if (event.detail !== 0) say('Nimm unten eine der leuchtenden Kugeln.'); return; }
   const source = capsules.querySelector(`[data-id="${selected.id}"]`).getBoundingClientRect();
   place(selected,event.clientX,event.clientY,source.left+source.width/2,source.top+source.height/2);
 });
@@ -354,6 +424,12 @@ $('#clear-all').addEventListener('click', event => {
   progress=0;
   panelOpen=false;
   focusedId=null;
+  wishDraft='';
+  wishThrown=false;
+  lastWish=null;
+  wishText.value='';
+  $('#wish-count').textContent=`0 / ${MAX_WISH_CHARS.toLocaleString('de-DE')} Zeichen`;
+  $('#wish-result').hidden=true;
   world.replaceChildren();
   throwLayer.replaceChildren();
   updateStory();
@@ -378,10 +454,17 @@ $('#help-toggle').addEventListener('click', () => setHelp($('#help-panel').hidde
 $('#help-close').addEventListener('click', () => { setHelp(false); $('#help-toggle').focus(); });
 window.addEventListener('keydown', event => { if (event.key==='Escape' && !$('#help-panel').hidden) setHelp(false); });
 
-function setWishwell(open) {
+function setWishwell(open, mode='compose') {
   wishwell.hidden = !open;
-  if (open) $('#wish-text').focus();
-  else if (!wishOpen.hidden) wishOpen.focus();
+  if (open) {
+    const process = mode === 'process' && wishThrown && lastWish;
+    $('#wish-form').hidden = !!process;
+    $('#wish-result').hidden = !process;
+    $('#wish-title').textContent = process ? 'Dein Wunschprozess.' : 'Deine Sprache. Deine Kugel.';
+    $('#wish-intro').textContent = process ? 'Diese Struktur und dieser Code entstanden nach dem Wurf deiner roten Kugel aus genau deinem Text.' : 'Schreib einen Wunsch oder füge eigenen Text ein. Daraus entsteht eine rote Kugel. Greif sie danach und wirf sie in den Raum: Erst dort entfaltet sich dein Text.';
+    $('.wish-local-note').hidden = !process;
+    (process ? $('#wish-close') : $('#wish-text')).focus();
+  } else if (!wishOpen.hidden) wishOpen.focus();
 }
 
 wishOpen.addEventListener('click', event => { event.stopPropagation(); setWishwell(true); });
@@ -399,12 +482,10 @@ wishwell.addEventListener('keydown', event => {
 const wishText = $('#wish-text');
 wishText.addEventListener('input', () => {
   $('#wish-count').textContent = `${wishText.value.length.toLocaleString('de-DE')} / ${MAX_WISH_CHARS.toLocaleString('de-DE')} Zeichen`;
-  lastWish = null;
-  $('#wish-result').hidden = true;
   $('#wish-error').hidden = true;
 });
 
-const signalLabels = {'book':'Buch erwähnt','tasks':'Aufgaben','timeline':'Zeitspur','search':'Suche','quiz':'Quiz','external-api':'API','account':'Konto','database':'Datenbank','payment':'Zahlung','ai-model':'Sprachmodell'};
+const signalLabels = {'book':'Buchwort im Text','tasks':'Aufgaben','timeline':'Zeitspur','search':'Suche','quiz':'Quiz','external-api':'API','account':'Konto','database':'Datenbank','payment':'Zahlung','ai-model':'Sprachmodell'};
 function showWishResult(result) {
   $('#wish-error').hidden = true;
   $('#wish-result').hidden = false;
@@ -427,22 +508,38 @@ function showWishResult(result) {
     for (const candidate of candidates.slice(0,5)) { const item=document.createElement('li'); item.textContent=candidate.text; trace.append(item); }
     if (result.analysis.statementCandidateCount > 5) { const item=document.createElement('li'); item.textContent=`${result.analysis.statementCandidateCount - 5} weitere Textstellen im JSON.`; trace.append(item); }
   }
+  $('#wish-json-preview').textContent = JSON.stringify({schema:result.schema,source:result.source,analysis:result.analysis,artifact:{entry:result.artifact.entry,format:result.artifact.format}},null,2);
   $('#wish-code-preview').textContent = result.artifact.files[0].content.slice(0,1600) + '\n…';
-  $('#wish-result').scrollIntoView({behavior:reduceMotion.matches ? 'instant' : 'smooth',block:'nearest'});
 }
 
 $('#wish-form').addEventListener('submit', event => {
   event.preventDefault();
   try {
-    lastWish = compileWish(wishText.value);
-    showWishResult(lastWish);
-    say(`${lastWish.analysis.modeLabel} erzeugt. JSON und HTML stehen zum Download bereit.`);
-  } catch (error) {
+    const text = wishText.value;
+    if (!text.trim()) throw new Error('Schreib zuerst etwas in deine rote Kugel.');
+    if (text.length > MAX_WISH_CHARS) throw new Error('Der Text ist zu lang.');
+    const validUntilThrow = text;
+    removePrevious(wishBlueprint.id);
+    updateLayers();
+    wishDraft = validUntilThrow;
+    wishThrown = false;
     lastWish = null;
     $('#wish-result').hidden = true;
+    setWishwell(false);
+    updateStory();
+    say('Die rote Kugel trägt deinen Text. Wirf sie jetzt in den Raum.');
+  } catch (error) {
     $('#wish-error').textContent = error.message;
     $('#wish-error').hidden = false;
   }
+});
+
+$('#wish-new').addEventListener('click', () => { wishText.value=''; wishText.dispatchEvent(new Event('input')); setWishwell(true,'compose'); });
+$('#wish-run').addEventListener('click', () => {
+  if (!wishThrown || !lastWish) return;
+  setWishwell(false);
+  const active = instances.find(item => item.blueprint.id === 'wish' && item.visible);
+  if (active) { focusedId=active.id; updateLayers(); active.element.querySelector('#wish-scene-search')?.focus(); }
 });
 
 function deliverFile(content, type, name) {
