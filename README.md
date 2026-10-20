@@ -1,24 +1,23 @@
 # LUCINET / SEEDSPACE
 
-Lokaler Browser-Prototyp für Juri Janovskis Idee vom leuchtenden Punkt, der beim Platzieren einen vorbereiteten Bauplan sichtbar entfaltet. Vier Kapseln zeigen unterschiedliche Resultate: Vorstellung, Pflanze, Projektatlas und ein interaktives Rechenwerkzeug.
+Lokaler Browser-Prototyp für Juri Janovskis räumliche Kapselidee. Ein Lichtpunkt wird in einen fast bildschirmfüllenden Raum gezogen. Am Ablagepunkt wächst eine Szene aus dem Punkt heraus. Weitere Punkte erzeugen weitere, gleichzeitig bestehende Objekte.
 
 ## Start
 
-Im Projektordner `python -m http.server 8851` ausführen und `http://127.0.0.1:8851/` öffnen. Keine Installation und keine externen Dienste erforderlich.
-
-## Technischer Vertrag
-
-`blueprints.js` enthält nur Daten mit Version, ID und Renderer-Typ. `app.js` erlaubt ausschließlich registrierte lokale Renderer. Eine Kapsel wählt beim Aufprall die Position und den Renderer; eine Flug- und Entfaltungsanimation macht den Übergang sichtbar. Das Werkzeug rechnet im Browser. Es gibt keinen Import fremden Codes, keinen Zugriff auf Excel-Dateien und keine automatische Ausführung externer Aktionen.
-
-Die Szene ist eine Websimulation. Ein ähnliches Ereignismodell könnte später in einer Spielwelt oder einem anderen Frontend benutzt werden, aber diese Browserfassung ist keine Morrowind-Integration.
+Im Projektordner `python -m http.server 8851 --bind 127.0.0.1` ausführen und `http://127.0.0.1:8851/` öffnen. Keine Installation, externen Dienste oder Schlüssel erforderlich.
 
 ## Bedienung
 
-- Kapsel anklicken und danach im Raum klicken; alternativ hineinziehen.
-- Mit Tastatur Kapsel wählen und im fokussierten Raum Enter oder Leertaste drücken.
-- `Entfaltung wiederholen` spielt die letzte Kapsel erneut; `Raum leeren` setzt zurück.
-- Bei reduzierter Bewegung werden Flug und Entfaltung stark verkürzt.
+- Lichtkugel unten greifen und an der gewünschten Stelle loslassen.
+- Alternativ Kugel antippen und danach im Raum einen Punkt wählen.
+- Mit Tastatur Kugel wählen, Raum fokussieren und Enter oder Leertaste drücken.
+- Jede Kapsel erzeugt eine eigene Instanz. Bereits platzierte Objekte bleiben erhalten.
+- Objekte über das kleine `×` oder die Liste „Im Raum“ ausblenden und über die Liste wieder einblenden.
+- „Raum leeren“ entfernt alle aktuell platzierten Instanzen.
+- Das `?` oben rechts enthält Anleitung und Bauplan-Vertrag.
 
-## Nächste Erweiterung
+## Modell
 
-Eine echte Projektkapsel könnte eine freigegebene, versionierte lokale Datenquelle laden und in einem isolierten Renderer anzeigen. Dafür braucht es einen eigenen Importvertrag für Dateiformat, Größe, Rechte, Validierung und eine Vorschau vor dem Öffnen.
+`blueprints.js` enthält versionierte, reine Daten für vier registrierte Renderer: Person, Pflanze, Projektatlas und Rechenwerkzeug. `app.js` setzt Position und Richtung der Entfaltung am tatsächlichen Ablagepunkt. Die Wurfanimation führt zum Punkt, die Szene wächst dort, und ihre Instanz bleibt im Raum. Mehrere Instanzen desselben Bauplans sind möglich. Das Microvalue-Werkzeug rechnet direkt im Browser.
+
+Die Kapsel führt keinen fremden Code aus und liest keine Excel-Datei. Eine spätere Projektkapsel könnte ein geprüftes, freigegebenes Datenpaket in einen isolierten Renderer laden. Die Browserfassung ist noch keine dreidimensionale Spielwelt und keine Morrowind-Integration; ihr Zustandsmodell ist als Ausgangspunkt dafür gedacht.
