@@ -18,6 +18,8 @@ Ein Knopf **in der entfalteten Szene** öffnet danach den getrennten Wunschproze
 
 Der Generator baut vier tatsächlich implementierte Vorlagen: einen durchsuchbaren Leseraum für längere Texte und Kapitel, eine Aufgabenliste mit lokalem Abhaken und Hinzufügen, eine Zeitspur für datierte Texte oder einen durchsuchbaren Ideenatlas. Die Wahl entsteht aus sichtbaren lokalen Regeln; sie ist keine allgemeine Sprachmodell-Inferenz. Nicht implementierte Außenfunktionen wie API, Login, Datenbank oder Zahlung bleiben als offene Anschlüsse im JSON erhalten. Der vollständige Eingabetext bleibt erhalten, auch wenn eine Regel ihn nicht deuten kann.
 
+Zahlungswörter einschließlich Überweisungsbitten, Ethereum und Wallet werden als offener Zahlungsanschluss ausgewiesen. Eine solche Bitte erzeugt nur einen lokalen Textentwurf und keine Transaktion oder Zustimmung Dritter.
+
 Der kleine ↺-Knopf oben setzt alle lokalen Szenen und den aktuellen Wunschfortschritt zurück. Die Idee eines gemeinsamen Raums mit begrenzten, zeitlich belegten Plätzen steht separat in [PUBLIC_NOTEBOOK_CONCEPT.md](PUBLIC_NOTEBOOK_CONCEPT.md); diese Fassung enthält keine Zahlungsfunktion.
 
 ## Start

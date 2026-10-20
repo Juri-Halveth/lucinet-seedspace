@@ -10,7 +10,7 @@ const SIGNALS = [
   ['external-api', /\b(?:api|schnittstelle|live-?daten|internetdaten)\b/iu],
   ['account', /\b(?:login|anmeldung|konto|account)\b/iu],
   ['database', /\b(?:datenbank|database|server)\b/iu],
-  ['payment', /\b(?:zahlung|bezahlen|payment|checkout)\b/iu],
+  ['payment', /(?<![\p{L}\p{N}_])(?:zahlung(?:en)?|bezahlen|überweis[\p{L}]*|wallet|ethereum|bitcoin|btc|payment|checkout)(?![\p{L}\p{N}_])/iu],
   ['ai-model', /\b(?:ki|ai|llm|sprachmodell|intelligenz)\b/iu]
 ];
 
@@ -75,7 +75,7 @@ function explicitStatements(text) {
   const pattern = /[^.!?\n]+[.!?]?/g;
   for (const match of text.matchAll(pattern)) {
     const phrase = match[0].trim();
-    if (!/\b(?:soll|muss|möchte|will|brauche|erstelle|baue|erzeuge|should|must|want|build|create|need)\b/iu.test(phrase)) continue;
+    if (!/\b(?:soll|muss|möchte|will|brauche|erstelle|baue|erzeuge|should|must|want|build|create|need|bitte)\b/iu.test(phrase)) continue;
     const leading = match[0].indexOf(phrase);
     const start = match.index + leading;
     found.push({start,end:start + phrase.length,text:phrase});
@@ -195,7 +195,7 @@ export function compileWish(input) {
   const html = standaloneHtml(runData);
   return {
     schema:WISH_SCHEMA,
-    generator:{name:'LUCINET Wunschbrunnen',version:'1.0.0',method:'local-rules-and-templates',networkRequests:0},
+    generator:{name:'LUCINET Wunschbrunnen',version:'1.0.1',method:'local-rules-and-templates',networkRequests:0},
     source:{originalText:input,normalizedText:normalized,normalization:'CRLF/CR to LF',characters:input.length,words:words.length},
     analysis:{mode,modeLabel:MODE_LABELS[mode],title,signals,statementCandidates:statements.shown,statementCandidateCount:statements.total,sections:sections.map(({title,start,end}) => ({title,start,end})),chapterCount,taskCount:tasks.length,dateCount:events.length,openConnections:external,coverage:{maxSections:120,maxStatementCandidatesShown:24,sourcePreserved:true}},
     program:runData,

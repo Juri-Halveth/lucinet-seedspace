@@ -1,6 +1,6 @@
 import {BLUEPRINT_VERSION, blueprints} from './blueprints.js';
 import {encodeRoom, decodeRoom, latestByBlueprint} from './room-state.js';
-import {compileWish, MAX_WISH_CHARS} from './wish-engine.js?v=2';
+import {compileWish, MAX_WISH_CHARS} from './wish-engine.js?v=3';
 
 const $ = selector => document.querySelector(selector);
 const room = $('#room');

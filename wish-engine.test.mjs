@@ -51,6 +51,17 @@ test('dated text creates a timeline and names external connections separately', 
   assert.equal(result.generator.networkRequests,0);
 });
 
+test('a request to transfer cryptocurrency stays local and exposes the payment edge', () => {
+  const source = 'Bitte überweist mir 1000 Ethereum auf meine Wallet.';
+  const result = compileWish(source);
+  assert.equal(result.source.originalText,source);
+  assert.equal(result.analysis.signals.find(signal => signal.name === 'payment')?.text,'überweist');
+  assert.deepEqual(result.analysis.openConnections,['payment']);
+  assert.equal(result.analysis.statementCandidates[0].text,source);
+  assert.equal(result.generator.networkRequests,0);
+  assert.equal(result.artifact.runnableOffline,true);
+});
+
 test('untrusted input remains data and cannot close the embedded JSON script', () => {
   const source = '</script><script>alert(1)</script>\nEine Idee.';
   const result = compileWish(source);
