@@ -1,0 +1,7 @@
+{
+  "name": "lucinet-seedspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node --test blueprints.test.mjs"}
+}

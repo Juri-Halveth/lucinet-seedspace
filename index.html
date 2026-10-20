@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080912">
+  <meta name="description" content="LUCINET Seedspace: Wirf einen Lichtpunkt in den Raum und sieh zu, wie sich ein vorbereiteter Bauplan entfaltet.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>LUCINET / SEEDSPACE</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#play">Zum Experiment</a>
+  <div class="site-shell">
+    <header class="topbar">
+      <a class="brand" href="./index.html" aria-label="LUCINET Seedspace Startseite"><span class="brand-mark">L<span>·</span></span><span class="brand-name">LUCINET <small>/ SEEDSPACE</small></span></a>
+      <span class="top-status"><i aria-hidden="true"></i> LIVE LAB · LOKALER PROTOTYP</span>
+      <a class="top-link" href="#blueprint">Wie funktioniert es? <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="title">
+        <div class="eyebrow"><span>01 / EIN PUNKT WIRD RAUM</span><span class="hairline"></span><span>JURI JANOVSKI × HALVETH</span></div>
+        <h1 id="title">Wirf eine Idee.<br><em>Sieh zu, wie sie wächst.</em></h1>
+        <p>Ein leuchtender Punkt enthält einen vorbereiteten Bauplan. Du wählst ihn, wirfst ihn in den Raum und öffnest, was darin steckt: eine Pflanze, eine Vorstellung, ein Projekt oder ein kleines Werkzeug.</p>
+      </section>
+
+      <section class="experience" id="play" aria-label="Interaktiver Seedspace">
+        <div class="experience-top"><span><b>✦</b> PROJEKTIONSRAUM</span><div class="room-actions"><button id="replay" type="button" disabled>Entfaltung wiederholen</button><button id="clear" type="button" disabled>Raum leeren</button></div></div>
+        <div class="room" id="room" tabindex="0" aria-label="Projektionsraum. Wähle unten eine Kapsel und klicke dann hier, um sie zu öffnen.">
+          <div class="room-grain" aria-hidden="true"></div><div class="room-horizon" aria-hidden="true"></div><div class="room-grid" aria-hidden="true"></div>
+          <div class="room-halo" aria-hidden="true"></div>
+          <div class="room-corner top-left">A / 001<br>OBSERVE</div><div class="room-corner top-right">X 00.000<br>Y 00.000</div>
+          <div class="room-corner bottom-left">POINT → PLACE → UNFOLD</div><div class="room-corner bottom-right">LUCINET / LOCAL</div>
+          <div id="welcome" class="welcome"><div class="welcome-symbol" aria-hidden="true"><span></span><span></span><span></span></div><h2>Hier beginnt der Raum.</h2><p>Eine Kapsel auswählen und in den dunklen Bereich klicken. Du kannst sie auch hineinziehen.</p></div>
+          <div id="projection" class="projection" aria-live="polite"></div>
+          <div id="throw-layer" class="throw-layer" aria-hidden="true"></div>
+          <div class="drop-cue" id="drop-cue" aria-hidden="true">HIER ENTFALTEN ↘</div>
+        </div>
+        <div class="capsule-bar"><div class="capsule-heading"><span>WÄHLE EINEN LICHTPUNKT</span><small>Klicken oder ziehen · dann im Raum platzieren</small></div><div class="capsules" id="capsules"></div></div>
+        <p class="live-status" id="live-status" role="status" aria-live="polite">Bereit. Wähle eine Kapsel.</p>
+      </section>
+
+      <section class="below" id="blueprint" aria-labelledby="blueprint-title">
+        <div class="section-index">02 / DER MECHANISMUS</div>
+        <div class="below-main"><h2 id="blueprint-title">Der Punkt ist ein <em>Auslöser.</em></h2><p>Die Kapsel trägt eine Kennung und Parameter. Der Browser kennt den zugehörigen Bauplan bereits. Beim Platzieren setzt er daraus eine Szene zusammen und lässt sie sichtbar werden. Das ist die programmierbare Form des „Port-a-Fort“-Effekts für Präsentationen, Pflanzen und Werkzeuge.</p><div class="flow"><span>01 <strong>CAPSULE</strong><small>Wähle den Bauplan</small></span><b>→</b><span>02 <strong>TRIGGER</strong><small>Setze den Ort</small></span><b>→</b><span>03 <strong>UNFOLD</strong><small>Entfalte die Szene</small></span><b>→</b><span>04 <strong>USE</strong><small>Interagiere damit</small></span></div><details><summary>Bauplan-Vertrag ansehen <span>+</span></summary><pre id="manifest-preview"></pre></details></div>
+      </section>
+    </main>
+    <footer><span>LUCINET / SEEDSPACE</span><span>Konzept: Juri Janovski · HALVETH</span><span>Browser-Prototyp · 2026</span></footer>
+  </div>
+</body>
+</html>
