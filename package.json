@@ -1,7 +1,7 @@
 {
   "name": "lucinet-seedspace",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
-  "scripts": {"test": "node --test blueprints.test.mjs room-state.test.mjs"}
+  "scripts": {"test": "node --test blueprints.test.mjs room-state.test.mjs wish-engine.test.mjs"}
 }
