@@ -10,6 +10,9 @@ test('a German task request becomes a usable offline task app inside JSON', () =
   assert.equal(result.source.originalText,source);
   assert.equal(result.analysis.mode,'tasks');
   assert.equal(result.analysis.taskCount,2);
+  assert.equal(result.program.schema,'seedspace.wish-program.v1');
+  assert.equal(result.program.source,source);
+  assert.deepEqual(result.program.tasks,['Tickets prüfen','Tasche packen']);
   assert.equal(result.analysis.statementCandidates[0].text,'Baue eine Aufgabenliste für meine Reise.');
   assert.equal(result.source.normalizedText.slice(result.analysis.statementCandidates[0].start,result.analysis.statementCandidates[0].end),result.analysis.statementCandidates[0].text);
   assert.match(result.artifact.files[0].content,/addEventListener\('submit'/);
@@ -17,6 +20,8 @@ test('a German task request becomes a usable offline task app inside JSON', () =
   const inlineCode = result.artifact.files[0].content.match(/<script>\n([\s\S]*?)\n<\/script>/)?.[1];
   assert.ok(inlineCode);
   assert.doesNotThrow(() => new Script(inlineCode));
+  const embeddedProgram = result.artifact.files[0].content.match(/<script id="wish-data" type="application\/json">([\s\S]*?)<\/script>/)?.[1];
+  assert.deepEqual(JSON.parse(embeddedProgram),result.program);
   assert.equal(JSON.parse(JSON.stringify(result)).artifact.entry,'index.html');
 });
 

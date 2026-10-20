@@ -187,6 +187,7 @@ export function compileWish(input) {
   const external = signals.filter(item => ['external-api','account','database','payment','ai-model'].includes(item.name)).map(item => item.name);
   const id = localId(normalized);
   const runData = {
+    schema:'seedspace.wish-program.v1',
     id,title,mode,modeLabel:MODE_LABELS[mode],source:normalized,
     intro: mode === 'reader' ? 'Ein durchsuchbarer Leseraum aus deinem Text.' : mode === 'tasks' ? 'Eine benutzbare Aufgabenliste aus deiner Beschreibung.' : mode === 'timeline' ? 'Eine durchsuchbare Zeitspur aus den erkannten Datumsstellen.' : 'Ein durchsuchbarer Ideenatlas aus deinem Text.',
     sections:sections.map(({title,text}) => ({title,text})),tasks,events
@@ -197,6 +198,7 @@ export function compileWish(input) {
     generator:{name:'LUCINET Wunschbrunnen',version:'1.0.0',method:'local-rules-and-templates',networkRequests:0},
     source:{originalText:input,normalizedText:normalized,normalization:'CRLF/CR to LF',characters:input.length,words:words.length},
     analysis:{mode,modeLabel:MODE_LABELS[mode],title,signals,statementCandidates:statements.shown,statementCandidateCount:statements.total,sections:sections.map(({title,start,end}) => ({title,start,end})),chapterCount,taskCount:tasks.length,dateCount:events.length,openConnections:external,coverage:{maxSections:120,maxStatementCandidatesShown:24,sourcePreserved:true}},
+    program:runData,
     artifact:{entry:'index.html',format:'standalone-html',runnableOffline:true,files:[{path:'index.html',mediaType:'text/html',content:html}]},
     claim:'Generated code implements the selected local template. Other requested behavior remains in the original source and openConnections.'
   };

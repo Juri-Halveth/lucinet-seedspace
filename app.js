@@ -1,6 +1,6 @@
 import {BLUEPRINT_VERSION, blueprints} from './blueprints.js';
 import {encodeRoom, decodeRoom, latestByBlueprint} from './room-state.js';
-import {compileWish, MAX_WISH_CHARS} from './wish-engine.js';
+import {compileWish, MAX_WISH_CHARS} from './wish-engine.js?v=2';
 
 const $ = selector => document.querySelector(selector);
 const room = $('#room');
@@ -282,15 +282,14 @@ function installWishScene(node) {
   const content = node.querySelector('.wish-scene-content');
   const search = node.querySelector('#wish-scene-search');
   const result = lastWish;
-  const source = result.source.normalizedText;
+  const program = result.program;
   node.querySelector('.wish-original pre').textContent = result.source.originalText;
-  const sections = result.analysis.sections.map(section => ({title:section.title,text:source.slice(section.start,section.end).trim()}));
-  const taskLines = source.split('\n').map(line => /^\s*(?:[-*•]|\d+[.)])\s+(.{2,200})\s*$/u.exec(line)?.[1]?.trim()).filter(Boolean);
-  let tasks = taskLines.map(text => ({text,done:false}));
+  const sections = program.sections;
+  let tasks = program.tasks.map(text => ({text,done:false}));
   function render() {
     content.replaceChildren();
     const query = search.value.toLocaleLowerCase();
-    if (result.analysis.mode === 'tasks' && tasks.length) {
+    if (program.mode === 'tasks' && tasks.length) {
       for (const item of tasks) {
         if (!item.text.toLocaleLowerCase().includes(query)) continue;
         const label=document.createElement('label'); label.className='wish-scene-task';
@@ -508,7 +507,7 @@ function showWishResult(result) {
     for (const candidate of candidates.slice(0,5)) { const item=document.createElement('li'); item.textContent=candidate.text; trace.append(item); }
     if (result.analysis.statementCandidateCount > 5) { const item=document.createElement('li'); item.textContent=`${result.analysis.statementCandidateCount - 5} weitere Textstellen im JSON.`; trace.append(item); }
   }
-  $('#wish-json-preview').textContent = JSON.stringify({schema:result.schema,source:result.source,analysis:result.analysis,artifact:{entry:result.artifact.entry,format:result.artifact.format}},null,2);
+  $('#wish-json-preview').textContent = JSON.stringify({schema:result.schema,source:result.source,analysis:result.analysis,program:result.program,artifact:{entry:result.artifact.entry,format:result.artifact.format}},null,2);
   $('#wish-code-preview').textContent = result.artifact.files[0].content.slice(0,1600) + '\n…';
 }
 
