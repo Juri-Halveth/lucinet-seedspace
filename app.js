@@ -1,5 +1,5 @@
 import {BLUEPRINT_VERSION, blueprints} from './blueprints.js';
-import {encodeRoom, decodeRoom} from './room-state.js';
+import {encodeRoom, decodeRoom, latestByBlueprint} from './room-state.js';
 
 const $ = selector => document.querySelector(selector);
 const room = $('#room');
@@ -15,6 +15,8 @@ const status = $('#live-status');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const STORAGE_KEY = 'lucinet.seedspace.room.v1';
 const instances = [];
+const pendingThrows = new Map();
+const throwEpochs = new Map();
 let selected = null;
 let pointerDrag = null;
 let suppressClickUntil = 0;
@@ -60,11 +62,13 @@ function selectCapsule(blueprint) {
   say(`${blueprint.label} gewählt. Jetzt in den Raum klicken oder die Kugel direkt hineinziehen.`);
 }
 
-function isPlaceable(clientX, clientY) {
+function isPlaceable(clientX, clientY, blueprint = selected) {
   const box = room.getBoundingClientRect();
   if (clientX < box.left || clientX > box.right || clientY < box.top || clientY > box.bottom) return false;
   const target = document.elementFromPoint(clientX, clientY);
-  return !target?.closest('.chrome, .dock, .help-panel, .layers-panel, .world-object');
+  if (target?.closest('.chrome, .dock, .help-panel, .layers-panel')) return false;
+  const object = target?.closest('.world-object');
+  return !object || object.dataset.blueprintId === blueprint?.id;
 }
 
 function setPreview(clientX, clientY, visible) {
@@ -91,7 +95,7 @@ window.addEventListener('pointermove', event => {
       dragGhost.style.left = `${event.clientX}px`;
       dragGhost.style.top = `${event.clientY}px`;
       dragGhost.classList.add('visible');
-      setPreview(event.clientX,event.clientY,isPlaceable(event.clientX,event.clientY));
+      setPreview(event.clientX,event.clientY,isPlaceable(event.clientX,event.clientY,pointerDrag.blueprint));
       room.classList.add('dragging');
     }
   } else if (selected && isPlaceable(event.clientX,event.clientY)) {
@@ -105,7 +109,7 @@ window.addEventListener('pointerup', event => {
   dragGhost.classList.remove('visible'); room.classList.remove('dragging'); targetPreview.classList.remove('visible');
   if (drag.moved) {
     suppressClickUntil = Date.now()+500;
-    if (isPlaceable(event.clientX,event.clientY)) place(drag.blueprint,event.clientX,event.clientY,drag.originX,drag.originY);
+    if (isPlaceable(event.clientX,event.clientY,drag.blueprint)) place(drag.blueprint,event.clientX,event.clientY,drag.originX,drag.originY);
     else say('Kugel im dunklen Raum loslassen.');
   }
 });
@@ -182,10 +186,22 @@ function positionNode(node,x,y,rect) {
   node.style.setProperty('--y',`${y}px`);
 }
 
+function removePrevious(blueprintId) {
+  for (let index = instances.length - 1; index >= 0; index--) {
+    const instance = instances[index];
+    if (instance.blueprint.id !== blueprintId) continue;
+    instance.element.remove();
+    instance.pulse?.remove();
+    instances.splice(index, 1);
+  }
+}
+
 function materialize(blueprint,x,y,{id=nextId++,visible=true,animate=true,persist=true}={}) {
   const rect = room.getBoundingClientRect();
+  removePrevious(blueprint.id);
   const node = document.createElement('div');
   node.className = `world-object ${blueprint.kind}`;
+  node.dataset.blueprintId = blueprint.id;
   if (!animate) node.classList.add('restored');
   positionNode(node,x,y,rect);
   node.style.setProperty('--tone',blueprint.tone);
@@ -198,7 +214,7 @@ function materialize(blueprint,x,y,{id=nextId++,visible=true,animate=true,persis
   connectTool(node);
   updateLayers();
   if (animate) {
-    const pulse = document.createElement('span'); pulse.className='ground-pulse'; pulse.style.left=`${x}px`; pulse.style.top=`${y}px`; pulse.style.setProperty('--tone',blueprint.tone); world.append(pulse);
+    const pulse = document.createElement('span'); pulse.className='ground-pulse'; pulse.style.left=`${x}px`; pulse.style.top=`${y}px`; pulse.style.setProperty('--tone',blueprint.tone); world.append(pulse); instance.pulse=pulse;
     pulse.addEventListener('animationend',()=>pulse.remove(),{once:true});
   }
   if (persist) saveRoom();
@@ -206,8 +222,19 @@ function materialize(blueprint,x,y,{id=nextId++,visible=true,animate=true,persis
 }
 
 async function place(blueprint, clientX, clientY, fromX, fromY) {
-  if (!blueprint || instances.length >= 20) { say('Der Raum enthält schon 20 Objekte. Einzelne ausblenden oder den Raum leeren.'); return; }
+  if (!blueprint || (instances.length >= 20 && !instances.some(item => item.blueprint.id === blueprint.id))) { say('Der Raum enthält schon 20 verschiedene Objekte.'); return; }
   const ownGeneration = generation;
+  const epoch = (throwEpochs.get(blueprint.id) || 0) + 1;
+  throwEpochs.set(blueprint.id, epoch);
+  const previousThrow = pendingThrows.get(blueprint.id);
+  previousThrow?.flight.cancel();
+  previousThrow?.orb.remove();
+  const hadPrevious = instances.some(item => item.blueprint.id === blueprint.id);
+  if (hadPrevious) {
+    removePrevious(blueprint.id);
+    updateLayers();
+    saveRoom();
+  }
   openingHint.hidden = true;
   const flying = document.createElement('div');
   flying.className = 'flying-orb';
@@ -219,13 +246,16 @@ async function place(blueprint, clientX, clientY, fromX, fromY) {
     {transform:`translate(${(fromX+clientX)/2}px,${Math.min(fromY,clientY)-65}px) scale(1.5)`,opacity:1,offset:.58},
     {transform:`translate(${clientX}px,${clientY}px) scale(.18)`,opacity:1}
   ],{duration,easing:'cubic-bezier(.16,.7,.14,1)',fill:'forwards'});
-  say(`${blueprint.label} fliegt zum gewählten Punkt.`);
+  const pending = {flight, orb:flying};
+  pendingThrows.set(blueprint.id,pending);
+  say(hadPrevious ? `${blueprint.label} am alten Ort entfernt und unterwegs zum neuen Punkt.` : `${blueprint.label} fliegt zum gewählten Punkt.`);
   await flight.finished.catch(()=>{});
   flying.remove();
-  if (ownGeneration !== generation) return;
+  if (pendingThrows.get(blueprint.id) === pending) pendingThrows.delete(blueprint.id);
+  if (ownGeneration !== generation || throwEpochs.get(blueprint.id) !== epoch || flight.playState === 'idle') return;
   const rect = room.getBoundingClientRect();
   materialize(blueprint,clientX-rect.left,clientY-rect.top);
-  say(`${blueprint.label} ist am gewählten Ort gewachsen. ${instances.length} Objekt${instances.length===1?'':'e'} im Raum.`);
+  say(`${blueprint.label} ist am neuen Ort gewachsen. Pro Kugeltyp bleibt genau ein Objekt im Raum.`);
 }
 
 room.addEventListener('click', event => {
@@ -245,6 +275,9 @@ room.addEventListener('keydown', event => {
 $('#clear-all').addEventListener('click', event => {
   event.stopPropagation();
   generation++;
+  for (const pending of pendingThrows.values()) pending.flight.cancel();
+  pendingThrows.clear();
+  throwEpochs.clear();
   instances.length=0;
   nextId=1;
   world.replaceChildren();
@@ -270,12 +303,14 @@ function restoreRoom() {
   if (!raw) return;
   try {
     const rect=room.getBoundingClientRect();
-    const records=decodeRoom(raw,new Set(blueprints.map(item=>item.id)),rect.width,rect.height);
+    const decoded=decodeRoom(raw,new Set(blueprints.map(item=>item.id)),rect.width,rect.height);
+    const records=latestByBlueprint(decoded);
     for (const record of records) {
       materialize(findCapsule(record.blueprintId),record.x,record.y,{id:record.id,visible:record.visible,animate:false,persist:false});
       nextId=Math.max(nextId,record.id+1);
     }
     if (records.length) { openingHint.hidden=true; say(`${records.length} gespeicherte Objekte im Raum.`); }
+    if (records.length !== decoded.length) saveRoom();
   } catch { say('Gespeicherter Raum ist ungültig; diese Ansicht beginnt leer.'); }
 }
 
