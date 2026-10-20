@@ -1,4 +1,5 @@
 import {BLUEPRINT_VERSION, blueprints} from './blueprints.js';
+import {encodeRoom, decodeRoom} from './room-state.js';
 
 const $ = selector => document.querySelector(selector);
 const room = $('#room');
@@ -12,6 +13,7 @@ const throwLayer = $('#throw-layer');
 const dragGhost = $('#drag-ghost');
 const status = $('#live-status');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const STORAGE_KEY = 'lucinet.seedspace.room.v1';
 const instances = [];
 let selected = null;
 let pointerDrag = null;
@@ -155,13 +157,52 @@ function updateLayers() {
   }
 }
 
+function saveRoom() {
+  try {
+    const rect = room.getBoundingClientRect();
+    localStorage.setItem(STORAGE_KEY, encodeRoom(instances,rect.width,rect.height));
+  } catch { say('Raum funktioniert weiter; lokales Speichern ist hier nicht verfügbar.'); }
+}
+
 function toggleInstance(id) {
   const instance = instances.find(item => item.id === id);
   if (!instance) return;
   instance.visible = !instance.visible;
   instance.element.hidden = !instance.visible;
   updateLayers();
+  saveRoom();
   say(`${instance.blueprint.label} ${instance.visible ? 'eingeblendet' : 'ausgeblendet'}. Andere Objekte bleiben stehen.`);
+}
+
+function positionNode(node,x,y,rect) {
+  node.classList.toggle('grow-right',x < 190);
+  node.classList.toggle('grow-left',x >= 190 && x > rect.width-190);
+  node.classList.toggle('grow-down',y < 240);
+  node.style.setProperty('--x',`${x}px`);
+  node.style.setProperty('--y',`${y}px`);
+}
+
+function materialize(blueprint,x,y,{id=nextId++,visible=true,animate=true,persist=true}={}) {
+  const rect = room.getBoundingClientRect();
+  const node = document.createElement('div');
+  node.className = `world-object ${blueprint.kind}`;
+  if (!animate) node.classList.add('restored');
+  positionNode(node,x,y,rect);
+  node.style.setProperty('--tone',blueprint.tone);
+  node.innerHTML = `<span class="anchor" aria-hidden="true"></span><div class="object-body">${sceneMarkup(blueprint)}</div><button class="object-hide" type="button" aria-label="${safe(blueprint.label)} ausblenden" title="Dieses Objekt ausblenden">×</button>`;
+  const instance = {id,blueprint,element:node,visible,x,y,rx:x/rect.width,ry:y/rect.height};
+  instances.push(instance);
+  world.append(node);
+  node.hidden=!visible;
+  node.querySelector('.object-hide').addEventListener('click', event => { event.stopPropagation(); toggleInstance(id); });
+  connectTool(node);
+  updateLayers();
+  if (animate) {
+    const pulse = document.createElement('span'); pulse.className='ground-pulse'; pulse.style.left=`${x}px`; pulse.style.top=`${y}px`; pulse.style.setProperty('--tone',blueprint.tone); world.append(pulse);
+    pulse.addEventListener('animationend',()=>pulse.remove(),{once:true});
+  }
+  if (persist) saveRoom();
+  return instance;
 }
 
 async function place(blueprint, clientX, clientY, fromX, fromY) {
@@ -183,25 +224,7 @@ async function place(blueprint, clientX, clientY, fromX, fromY) {
   flying.remove();
   if (ownGeneration !== generation) return;
   const rect = room.getBoundingClientRect();
-  const x = clientX-rect.left, y=clientY-rect.top;
-  const node = document.createElement('div');
-  node.className = `world-object ${blueprint.kind}`;
-  if (x < 190) node.classList.add('grow-right');
-  else if (x > rect.width-190) node.classList.add('grow-left');
-  if (y < 240) node.classList.add('grow-down');
-  node.style.setProperty('--x',`${x}px`);
-  node.style.setProperty('--y',`${y}px`);
-  node.style.setProperty('--tone',blueprint.tone);
-  node.innerHTML = `<span class="anchor" aria-hidden="true"></span><div class="object-body">${sceneMarkup(blueprint)}</div><button class="object-hide" type="button" aria-label="${safe(blueprint.label)} ausblenden" title="Dieses Objekt ausblenden">×</button>`;
-  const id = nextId++;
-  const instance = {id,blueprint,element:node,visible:true,x,y};
-  instances.push(instance);
-  world.append(node);
-  node.querySelector('.object-hide').addEventListener('click', event => { event.stopPropagation(); toggleInstance(id); });
-  connectTool(node);
-  updateLayers();
-  const pulse = document.createElement('span'); pulse.className='ground-pulse'; pulse.style.left=`${x}px`; pulse.style.top=`${y}px`; pulse.style.setProperty('--tone',blueprint.tone); world.append(pulse);
-  pulse.addEventListener('animationend',()=>pulse.remove(),{once:true});
+  materialize(blueprint,clientX-rect.left,clientY-rect.top);
   say(`${blueprint.label} ist am gewählten Ort gewachsen. ${instances.length} Objekt${instances.length===1?'':'e'} im Raum.`);
 }
 
@@ -228,6 +251,7 @@ $('#clear-all').addEventListener('click', event => {
   throwLayer.replaceChildren();
   openingHint.hidden=false;
   updateLayers();
+  try { localStorage.removeItem(STORAGE_KEY); } catch { /* Session still clears. */ }
   say('Raum geleert. Die Kugeln warten unten.');
 });
 
@@ -240,4 +264,28 @@ $('#help-toggle').addEventListener('click', () => setHelp($('#help-panel').hidde
 $('#help-close').addEventListener('click', () => { setHelp(false); $('#help-toggle').focus(); });
 window.addEventListener('keydown', event => { if (event.key==='Escape' && !$('#help-panel').hidden) setHelp(false); });
 
+function restoreRoom() {
+  let raw;
+  try { raw=localStorage.getItem(STORAGE_KEY); } catch { return; }
+  if (!raw) return;
+  try {
+    const rect=room.getBoundingClientRect();
+    const records=decodeRoom(raw,new Set(blueprints.map(item=>item.id)),rect.width,rect.height);
+    for (const record of records) {
+      materialize(findCapsule(record.blueprintId),record.x,record.y,{id:record.id,visible:record.visible,animate:false,persist:false});
+      nextId=Math.max(nextId,record.id+1);
+    }
+    if (records.length) { openingHint.hidden=true; say(`${records.length} gespeicherte Objekte im Raum.`); }
+  } catch { say('Gespeicherter Raum ist ungültig; diese Ansicht beginnt leer.'); }
+}
+
+window.addEventListener('resize', () => {
+  const rect=room.getBoundingClientRect();
+  for (const instance of instances) {
+    instance.x=instance.rx*rect.width; instance.y=instance.ry*rect.height;
+    positionNode(instance.element,instance.x,instance.y,rect);
+  }
+});
+
 renderCapsules();
+restoreRoom();

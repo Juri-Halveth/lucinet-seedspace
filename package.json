@@ -3,5 +3,5 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "scripts": {"test": "node --test blueprints.test.mjs"}
+  "scripts": {"test": "node --test blueprints.test.mjs room-state.test.mjs"}
 }
