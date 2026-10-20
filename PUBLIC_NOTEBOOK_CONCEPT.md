@@ -1,6 +1,6 @@
 # Seedspace als öffentliches Notizheft — Entwurf
 
-**Stand:** Konzept, keine Reservierung und keine Zahlungsfunktion. Die bestehende Seedspace-Seite speichert nur den eigenen lokalen Raum.
+**Stand:** [Slot-Simulator](notebook-lab.html) mit lokalen Testdaten und Export ist vorhanden. Er ist kein gemeinsamer öffentlicher Raum und enthält keine Reservierungs- oder Zahlungsfunktion. Die bestehende Seedspace-Seite speichert nur den eigenen lokalen Raum.
 
 ## Ausgangsidee
 
@@ -31,4 +31,4 @@ Besucher werfen eigene Textkugeln in einen gemeinsamen, begrenzten Raum. Jede Ku
 4. Wie werden Zahlungseingang, Erneuerung, Ablauf, Rückerstattung und Streitfälle technisch und vertraglich belegt?
 5. Welche maximale Größe, Mindestabstände, Slotzahl und Laufzeit sind tatsächlich für alle gleich?
 
-**Nächster Prototyp:** zuerst ein lokaler Slot-Simulator mit festen Kapazitätsregeln und Testdaten. Erst nach Prüfung von Preis, Abrechnung, Nutzungsbedingungen und Betreiberaufgaben wäre eine echte Veröffentlichung mit Zahlungsfluss sinnvoll.
+**Prototyp:** Das [Notizheft-Labor](notebook-lab.html) prüft acht Plätze, Radius 40–82, Mindestabstand 18, Kalendermonate, sieben Tage Nachfrist, lokale Archivierung und JSON-Export. Laufzeiten und Erneuerungen sind simuliert. Erst nach Prüfung von Preis, Abrechnung, Nutzungsbedingungen und Betreiberaufgaben wäre eine echte Veröffentlichung mit Zahlungsfluss sinnvoll.

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#090711">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>SEEDSPACE / Notizheft-Labor</title>
+  <link rel="stylesheet" href="./notebook-lab.css?v=2">
+  <script type="module" src="./notebook-lab.js?v=2"></script>
+</head>
+<body>
+  <a class="skip" href="#board">Direkt zum Raum</a>
+  <header class="top"><a class="brand" href="./index.html"><span class="brand-mark">L·</span><span>LUCINET <small>SEEDSPACE</small></span></a><span class="top-kind">NOTIZHEFT / LABOR 01</span><a class="top-link" href="./PUBLIC_NOTEBOOK_CONCEPT.md">Konzept ↗</a></header>
+  <main>
+    <section class="intro" aria-labelledby="title"><div class="eyebrow"><span class="pulse"></span> LOKALE SIMULATION · GEMEINSAMER RAUM ALS MODELL</div><h1 id="title">Ein Platz für<br><em>deine Kugel.</em></h1><p>Wähle einen Ort und eine Größe. Der Raum prüft die Abstände. Verlängere eine Laufzeit oder lass sie auslaufen und beobachte, wann der Platz wieder frei wird.</p><div class="meta"><span>8 Plätze</span><span>1 Kalendermonat pro Laufzeit</span><span>7 Tage Nachfrist</span><span>Preisidee: 1 BTC / Monat</span></div><p class="scope">Diese Seite nutzt Testdaten in deinem Browser. Klicks simulieren Laufzeiten; sie lösen keine Zahlung und keine öffentliche Reservierung aus.</p></section>
+    <section class="lab" aria-label="Slot-Simulator">
+      <div class="board-column"><div class="board-head"><div><span class="kicker">01 / DER RAUM</span><h2>Wo soll sie wachsen?</h2></div><div class="board-stats"><span id="count">0 / 8 Plätze</span><span id="area">0 % Kugelfläche</span></div></div><div class="board-shell"><div id="board" class="board" tabindex="0" aria-label="Raum mit acht begrenzten Kugelplätzen"><div class="board-grid" aria-hidden="true"></div><div id="ball-layer" class="ball-layer"></div><div id="ghost" class="ghost" hidden></div><span class="board-corner tl">X 0 / Y 0</span><span class="board-corner br">1000 / 620</span></div></div><p id="board-help" class="board-help">Platz vorbereiten, dann in den Raum klicken. Für Tastaturbedienung X und Y eintragen und „An Position setzen“ wählen.</p><div id="slot-list" class="slot-list" aria-label="Kugelplätze auswählen"></div><div class="timebar"><div><span class="kicker">SIMULATIONSZEIT</span><strong id="day"></strong></div><div class="time-actions"><button id="advance-7" type="button">+ 7 Tage</button><button id="advance-30" type="button">+ 30 Tage</button></div></div></div>
+      <aside class="controls"><div class="panel"><span class="kicker">02 / DEINE KUGEL</span><h2>Platz vorbereiten</h2><form id="new-form"><label>Titel <input id="title-input" maxlength="48" required value="Neue Notiz" autocomplete="off"></label><label>Text <textarea id="text-input" maxlength="280" required>Hier beginnt eine neue Idee.</textarea></label><label>Größe <span id="radius-value">56</span><input id="radius-input" type="range" min="40" max="82" value="56"></label><div class="coords"><label>X <input id="x-input" type="number" min="40" max="960" value="480" required></label><label>Y <input id="y-input" type="number" min="40" max="580" value="280" required></label></div><div class="form-actions"><button id="arm" class="primary" type="button">Im Raum wählen ↗</button><button class="secondary" type="submit">An Position setzen</button></div></form><p class="fine">Belegung ist begrenzt: maximal acht Kugeln, Radius 40–82, Mindestabstand 18. Ein bestehender Platz wird nicht verdrängt.</p></div><div class="panel selection"><span class="kicker">03 / AUSGEWÄHLTER PLATZ</span><div id="selection-content"><p class="muted">Wähle eine Kugel im Raum.</p></div></div><div class="panel log-panel"><span class="kicker">04 / ZUSTAND & EXPORT</span><div class="form-actions"><button id="export-all" class="secondary" type="button">Alles als JSON ↓</button><button id="reset-demo" class="secondary" type="button">Demo neu laden ↺</button></div><p id="archive-count" class="fine"></p><ol id="event-log" class="event-log"></ol></div></aside>
+    </section>
+    <p id="notice" class="notice" role="status" aria-live="polite"></p>
+  </main>
+</body>
+</html>

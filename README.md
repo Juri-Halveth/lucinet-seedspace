@@ -22,6 +22,10 @@ Zahlungswörter einschließlich Überweisungsbitten, Ethereum und Wallet werden 
 
 Der kleine ↺-Knopf oben setzt alle lokalen Szenen und den aktuellen Wunschfortschritt zurück. Die Idee eines gemeinsamen Raums mit begrenzten, zeitlich belegten Plätzen steht separat in [PUBLIC_NOTEBOOK_CONCEPT.md](PUBLIC_NOTEBOOK_CONCEPT.md); diese Fassung enthält keine Zahlungsfunktion.
 
+## Notizheft-Labor
+
+Der [lokale Slot-Simulator](notebook-lab.html) setzt die Platzregeln als eigene Testfläche um: acht Plätze, begrenzte Radien und Abstände, kalendermonatliche Laufzeiten mit Nachfrist, freiwillige Verlängerung, Freigabe, lokales Archiv und JSON-Export. Er verwendet Browserdaten und Testeinträge; zwischen Besuchern findet kein Abgleich statt. Die angezeigten 1 BTC sind die Preisidee aus dem Konzept, kein Zahlungsangebot und keine Wallet-Verbindung.
+
 ## Start
 
 `python -m http.server 8851 --bind 127.0.0.1` im Projektordner ausführen und [den lokalen Raum](http://127.0.0.1:8851/) öffnen. Das Projekt benötigt keine Build-Abhängigkeiten. Die veröffentlichte Fassung wird als statische Seite über GitHub Pages ausgeliefert.
