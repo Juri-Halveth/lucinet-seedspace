@@ -412,8 +412,7 @@ room.addEventListener('keydown', event => {
   place(selected,box.left+box.width*.5,box.top+box.height*.48,source.left+source.width/2,source.top+source.height/2);
 });
 
-$('#clear-all').addEventListener('click', event => {
-  event.stopPropagation();
+function resetRoom() {
   generation++;
   for (const pending of pendingThrows.values()) pending.flight.cancel();
   pendingThrows.clear();
@@ -436,7 +435,11 @@ $('#clear-all').addEventListener('click', event => {
   setWishwell(false);
   try { localStorage.removeItem(STORAGE_KEY); } catch { /* Session still clears. */ }
   say('Die Geschichte beginnt von vorn. Greif die erste Kugel.');
-});
+  capsules.querySelector('.capsule')?.focus();
+}
+for (const selector of ['#clear-all','#reset-room']) {
+  $(selector).addEventListener('click', event => { event.stopPropagation(); resetRoom(); });
+}
 
 $('#layers-toggle').addEventListener('click', event => {
   event.stopPropagation();

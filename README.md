@@ -18,6 +18,8 @@ Ein Knopf **in der entfalteten Szene** öffnet danach den getrennten Wunschproze
 
 Der Generator baut vier tatsächlich implementierte Vorlagen: einen durchsuchbaren Leseraum für längere Texte und Kapitel, eine Aufgabenliste mit lokalem Abhaken und Hinzufügen, eine Zeitspur für datierte Texte oder einen durchsuchbaren Ideenatlas. Die Wahl entsteht aus sichtbaren lokalen Regeln; sie ist keine allgemeine Sprachmodell-Inferenz. Nicht implementierte Außenfunktionen wie API, Login, Datenbank oder Zahlung bleiben als offene Anschlüsse im JSON erhalten. Der vollständige Eingabetext bleibt erhalten, auch wenn eine Regel ihn nicht deuten kann.
 
+Der kleine ↺-Knopf oben setzt alle lokalen Szenen und den aktuellen Wunschfortschritt zurück. Die Idee eines gemeinsamen Raums mit begrenzten, zeitlich belegten Plätzen steht separat in [PUBLIC_NOTEBOOK_CONCEPT.md](PUBLIC_NOTEBOOK_CONCEPT.md); diese Fassung enthält keine Zahlungsfunktion.
+
 ## Start
 
 `python -m http.server 8851 --bind 127.0.0.1` im Projektordner ausführen und [den lokalen Raum](http://127.0.0.1:8851/) öffnen. Das Projekt benötigt keine Build-Abhängigkeiten. Die veröffentlichte Fassung wird als statische Seite über GitHub Pages ausgeliefert.
