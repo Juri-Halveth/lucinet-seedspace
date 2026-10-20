@@ -12,22 +12,44 @@ const targetPreview = $('#target-preview');
 const throwLayer = $('#throw-layer');
 const dragGhost = $('#drag-ghost');
 const status = $('#live-status');
+const storyPrompt = $('#story-prompt');
+const storyCounter = $('#story-counter');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
-const STORAGE_KEY = 'lucinet.seedspace.room.v1';
+const STORAGE_KEY = 'lucinet.seedspace.room.v2';
 const instances = [];
 const pendingThrows = new Map();
 const throwEpochs = new Map();
+const topics = [
+  {number:'02 / LUCINET', title:'Aus Beobachtung wird Raum.', body:'Ein Bild ist der Anfang. LUCINET fragt, welche Szene, Bewegung und Verbindung daraus werden kann.', nodes:['QUELLE','MODELL','SZENE']},
+  {number:'02 / RED ROOM', title:'Eine Frage öffnet Quellen.', body:'Spuren werden gesammelt, verglichen und als offene oder gestützte Verbindung sichtbar gemacht.', nodes:['FRAGE','QUELLE','VERBINDUNG']},
+  {number:'02 / SPIELWELT', title:'Ein Punkt wird zur Welt.', body:'Kleine Bausteine entfalten Orte, Grafik und Bewegung – erst im Browser, später vielleicht im Spiel.', nodes:['PUNKT','RAUM','WELT']}
+];
+const wonders = [
+  {name:'PORTAL', line:'Eine Grenze wird zu einem Übergang.'},
+  {name:'SCHMETTERLING', line:'Eine kleine Bewegung verändert die ganze Szene.'},
+  {name:'STERNKARTE', line:'Getrennte Punkte finden eine Form.'}
+];
+const mantras = [
+  'WO DU EINEN PUNKT SETZT, ENTSTEHT EIN ORT. WO ZWEI ORTE SIND, WARTET EINE VERBINDUNG.',
+  'DAS LICHT GEHT NACH LINKS. DER GEDANKE GEHT WEITER. DEIN NÄCHSTER WURF ENTSCHEIDET.',
+  'EIN ALTES BILD VERGEHT. DIE NEUE SPUR BLEIBT NUR DORT, WO DU SIE SETZT.',
+  'DIE KUGEL FÄLLT. DER RAUM ANTWORTET. NICHTS MUSS VORHER WISSEN, WAS DARAUS WIRD.'
+];
 let selected = null;
 let pointerDrag = null;
 let suppressClickUntil = 0;
 let nextId = 1;
 let generation = 0;
+let progress = 0;
+let panelOpen = false;
+let focusedId = null;
 
 $('#manifest-preview').textContent = JSON.stringify({
   schema: BLUEPRINT_VERSION,
-  capsule: {id: 'garden', renderer: 'registered-local-component'},
+  capsule: {id: 'origin', renderer: 'registered-local-component'},
   placement: {x: 'drop-coordinate', y: 'drop-coordinate', anchor: 'root-point'},
-  lifecycle: ['throw', 'impact', 'grow-at-anchor', 'persist', 'hide-or-show']
+  lifecycle: ['unlock', 'throw', 'impact', 'grow-at-anchor', 'persist', 'hide-or-show'],
+  observer: 'local page interaction only'
 }, null, 2);
 
 const safe = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -36,13 +58,16 @@ function findCapsule(id) { return blueprints.find(item => item.id === id); }
 
 function renderCapsules() {
   capsules.replaceChildren();
-  for (const blueprint of blueprints) {
+  for (const [index, blueprint] of blueprints.entries()) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'capsule';
     button.dataset.id = blueprint.id;
+    button.hidden = index > progress;
+    button.classList.toggle('is-next', index === progress || progress === blueprints.length);
+    button.classList.toggle('is-past', index < progress);
     button.style.setProperty('--tone', blueprint.tone);
-    button.setAttribute('aria-label', `${blueprint.label}: ${blueprint.description} Greifen und in den Raum ziehen oder antippen.`);
+    button.setAttribute('aria-label', `Kugel ${index + 1}: ${index < progress ? blueprint.label : 'unbekannter Inhalt'}. Greifen und in den Raum ziehen oder antippen.`);
     button.setAttribute('aria-pressed', 'false');
     button.innerHTML = `<span class="orb"><span>${safe(blueprint.icon)}</span></span><span class="capsule-name">${safe(blueprint.label)}</span>`;
     button.addEventListener('pointerdown', event => startDrag(event, blueprint, button));
@@ -54,6 +79,26 @@ function renderCapsules() {
   }
 }
 
+function updateStory() {
+  const prompts = [
+    'Nimm die Kugel.',
+    'Hier ist noch eine.',
+    'Die rote will etwas sagen.',
+    'Was steckt in der nächsten?',
+    'Zum Schluss: alles verbinden.',
+    'Der Raum ist offen. Wirf weiter.'
+  ];
+  storyPrompt.textContent = prompts[progress];
+  storyCounter.textContent = progress === blueprints.length ? '∞ / 05' : String(progress + 1).padStart(2, '0') + ' / 05';
+  room.dataset.stage = String(progress);
+  openingHint.hidden = progress > 0;
+  $('.story-rail').hidden = progress === 0;
+  selected = null;
+  room.classList.remove('has-selection');
+  targetPreview.classList.remove('visible');
+  renderCapsules();
+}
+
 function selectCapsule(blueprint) {
   selected = blueprint;
   capsules.querySelectorAll('.capsule').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.id === blueprint.id)));
@@ -62,13 +107,12 @@ function selectCapsule(blueprint) {
   say(`${blueprint.label} gewählt. Jetzt in den Raum klicken oder die Kugel direkt hineinziehen.`);
 }
 
-function isPlaceable(clientX, clientY, blueprint = selected) {
+function isPlaceable(clientX, clientY) {
   const box = room.getBoundingClientRect();
   if (clientX < box.left || clientX > box.right || clientY < box.top || clientY > box.bottom) return false;
   const target = document.elementFromPoint(clientX, clientY);
   if (target?.closest('.chrome, .dock, .help-panel, .layers-panel')) return false;
-  const object = target?.closest('.world-object');
-  return !object || object.dataset.blueprintId === blueprint?.id;
+  return !target?.closest('.object-hide, a, input');
 }
 
 function setPreview(clientX, clientY, visible) {
@@ -95,7 +139,7 @@ window.addEventListener('pointermove', event => {
       dragGhost.style.left = `${event.clientX}px`;
       dragGhost.style.top = `${event.clientY}px`;
       dragGhost.classList.add('visible');
-      setPreview(event.clientX,event.clientY,isPlaceable(event.clientX,event.clientY,pointerDrag.blueprint));
+      setPreview(event.clientX,event.clientY,isPlaceable(event.clientX,event.clientY));
       room.classList.add('dragging');
     }
   } else if (selected && isPlaceable(event.clientX,event.clientY)) {
@@ -109,7 +153,7 @@ window.addEventListener('pointerup', event => {
   dragGhost.classList.remove('visible'); room.classList.remove('dragging'); targetPreview.classList.remove('visible');
   if (drag.moved) {
     suppressClickUntil = Date.now()+500;
-    if (isPlaceable(event.clientX,event.clientY,drag.blueprint)) place(drag.blueprint,event.clientX,event.clientY,drag.originX,drag.originY);
+    if (isPlaceable(event.clientX,event.clientY)) place(drag.blueprint,event.clientX,event.clientY,drag.originX,drag.originY);
     else say('Kugel im dunklen Raum loslassen.');
   }
 });
@@ -118,34 +162,34 @@ window.addEventListener('pointercancel', () => {
   pointerDrag=null; dragGhost.classList.remove('visible'); room.classList.remove('dragging'); targetPreview.classList.remove('visible');
 });
 
-function sceneMarkup(blueprint) {
+function sceneMarkup(blueprint, variant) {
   switch (blueprint.kind) {
-    case 'profile': return `<article class="scene-card profile-card"><span class="scene-index">01 / JURI</span><div class="portrait">J<span>·</span></div><h2>Hallo, ich bin <em>Juri.</em></h2><p>Ich baue HALVETH und LUCINET: Forschung, Code und Räume, in denen Ideen sichtbar werden.</p><div class="mini-tags"><span>FORSCHUNG</span><span>CODE</span><span>WELTEN</span></div></article>`;
-    case 'garden': return `<article class="garden-scene" aria-label="Lichtpflanze"><div class="plant-aura"></div><div class="plant-stem"></div><div class="plant-leaf leaf-left"></div><div class="plant-leaf leaf-right"></div><div class="flower"><i></i><i></i><i></i><i></i><i></i><b></b></div><span class="plant-label">GARDEN / 01</span></article>`;
-    case 'projects': return `<article class="scene-card atlas-card"><span class="scene-index">03 / PROJEKTE</span><h2>HALVETH <em>Atlas.</em></h2><div class="project-row"><b>01</b><span>RED ROOM<small>Recherche und Quellenräume</small></span></div><div class="project-row"><b>02</b><span>LUCINET<small>Beobachtung und Projektion</small></span></div><div class="project-row"><b>03</b><span>MORROWIND<small>Spielwelt und Gestaltung</small></span></div></article>`;
-    case 'tool': return `<article class="scene-card tool-card"><span class="scene-index">04 / WERKZEUG</span><h2>Microvalue <em>Studio.</em></h2><p>Ein Cent. Vier Anteile. Ein berechneter Rest.</p><div class="tool-inputs"><label>A <input type="number" min="0" max="100" value="24" inputmode="decimal"></label><label>B <input type="number" min="0" max="100" value="24" inputmode="decimal"></label><label>C <input type="number" min="0" max="100" value="24" inputmode="decimal"></label><label>D <input type="number" min="0" max="100" value="24" inputmode="decimal"></label></div><div class="tool-result">REST <strong data-rest>4 %</strong><small data-euro>0,0004 €</small></div><p class="tool-error" data-error role="alert"></p></article>`;
+    case 'profile':
+      return `<article class="scene-card profile-card"><span class="scene-index">01 / DER ANFANG</span><div class="portrait">J<span>·</span></div><h2>Juri<br><em>Janovski.</em></h2><p>Ich verbinde Forschung, Code, Grafik und Spielwelten zu Räumen, die man selbst entdecken kann.</p><div class="mini-tags"><span>HALVETH</span><span>LUCINET</span></div></article>`;
+    case 'signal': {
+      const topic = topics[variant % topics.length];
+      return `<article class="scene-card signal-card"><span class="scene-index">${safe(topic.number)}</span><div class="signal-graphic" aria-hidden="true"><i></i><i></i><i></i><b></b></div><h2>${safe(topic.title)}</h2><p>${safe(topic.body)}</p><div class="signal-nodes">${topic.nodes.map(node => `<span>${safe(node)}</span>`).join('<i aria-hidden="true"></i>')}</div></article>`;
+    }
+    case 'scarlet':
+      return `<article class="scarlet-scene"><div class="scarlet-halo" aria-hidden="true"><i></i><i></i><i></i><b>✧</b></div><div class="scarlet-words"><span>03 / DIE STIMME</span><p>${safe(mantras[variant % mantras.length])}</p></div></article>`;
+    case 'wonder': {
+      const wonder = wonders[variant % wonders.length];
+      return `<article class="wonder-scene wonder-${variant % wonders.length}"><div class="wonder-art" aria-hidden="true"><i></i><i></i><i></i><i></i><b>✦</b></div><div class="wonder-copy"><span>04 / UNBEKANNT</span><h2>${safe(wonder.name)}</h2><p>${safe(wonder.line)}</p></div></article>`;
+    }
+    case 'projects':
+      return `<article class="scene-card universe-card"><span class="scene-index">05 / JURIS PROJEKTUNIVERSUM</span><h2>Wer Verbindungen baut,<br><em>baut Welten.</em></h2><div class="universe-map" aria-label="Juri verbindet HALVETH, LUCINET, RED ROOM, Spielwelten und Connectoren"><div class="universe-core">J</div><span class="map-node n1">HALVETH</span><span class="map-node n2">LUCINET</span><span class="map-node n3">RED ROOM</span><span class="map-node n4">SPIELWELTEN</span><span class="map-node n5">CONNECTORS</span></div><p>Forschung · Grafik · Spiele · Code · Verbindungen</p></article>`;
     default: throw new Error('Unregistered renderer');
   }
 }
 
-function connectTool(root) {
-  const card = root.querySelector('.tool-card');
-  if (!card) return;
-  const inputs = [...card.querySelectorAll('input')];
-  const update = () => {
-    const values = inputs.map(input => input.value.trim() === '' ? NaN : Number(input.value));
-    const sum = values.reduce((a,b) => a+b,0);
-    const valid = values.every(n => Number.isFinite(n) && n >= 0 && n <= 100) && sum <= 100;
-    card.querySelector('[data-rest]').textContent = valid ? `${Math.round((100-sum)*100)/100} %` : '—';
-    card.querySelector('[data-euro]').textContent = valid ? `${((100-sum)/10000).toFixed(4).replace('.',',')} €` : '—';
-    card.querySelector('[data-error]').textContent = valid ? '' : 'Summe muss zwischen 0 und 100 % liegen.';
-  };
-  inputs.forEach(input => input.addEventListener('input',update));
-  update();
-}
-
 function updateLayers() {
-  layersPanel.hidden = instances.length === 0;
+  const latest = instances.find(item => item.id === focusedId && item.visible) || [...instances].reverse().find(item => item.visible);
+  focusedId = latest?.id ?? null;
+  for (const item of instances) item.element.classList.toggle('is-latest', item === latest);
+  if (instances.length === 0) panelOpen = false;
+  $('#layers-toggle').hidden = instances.length === 0;
+  $('#layers-toggle').setAttribute('aria-expanded', String(panelOpen));
+  layersPanel.hidden = !panelOpen || instances.length === 0;
   $('#object-count').textContent = String(instances.length);
   layers.replaceChildren();
   for (const instance of instances) {
@@ -173,14 +217,20 @@ function toggleInstance(id) {
   if (!instance) return;
   instance.visible = !instance.visible;
   instance.element.hidden = !instance.visible;
+  if (!instance.visible && focusedId === id) focusedId = null;
+  if (instance.visible) focusedId = id;
   updateLayers();
   saveRoom();
-  say(`${instance.blueprint.label} ${instance.visible ? 'eingeblendet' : 'ausgeblendet'}. Andere Objekte bleiben stehen.`);
+  say(`${instance.blueprint.label} ${instance.visible ? 'eingeblendet' : 'ausgeblendet'}.`);
 }
 
 function positionNode(node,x,y,rect) {
-  node.classList.toggle('grow-right',x < 190);
-  node.classList.toggle('grow-left',x >= 190 && x > rect.width-190);
+  const preferredWidths = {origin:[310,.78],signal:[330,.82],scarlet:[330,.82],wonder:[320,.82],universe:[450,.88]};
+  const [pixels, ratio] = preferredWidths[node.dataset.blueprintId] || [330,.82];
+  const width = Math.min(pixels, rect.width * ratio);
+  const left = Math.max(12, Math.min(rect.width - width - 12, x - width/2));
+  node.style.setProperty('--body-offset', `${left - x}px`);
+  node.style.setProperty('--growth-origin', `${Math.max(0,Math.min(100,(x-left)/width*100))}%`);
   node.classList.toggle('grow-down',y < 240);
   node.style.setProperty('--x',`${x}px`);
   node.style.setProperty('--y',`${y}px`);
@@ -190,13 +240,14 @@ function removePrevious(blueprintId) {
   for (let index = instances.length - 1; index >= 0; index--) {
     const instance = instances[index];
     if (instance.blueprint.id !== blueprintId) continue;
+    if (focusedId === instance.id) focusedId = null;
     instance.element.remove();
     instance.pulse?.remove();
     instances.splice(index, 1);
   }
 }
 
-function materialize(blueprint,x,y,{id=nextId++,visible=true,animate=true,persist=true}={}) {
+function materialize(blueprint,x,y,{id=nextId++,visible=true,variant=0,animate=true,persist=true}={}) {
   const rect = room.getBoundingClientRect();
   removePrevious(blueprint.id);
   const node = document.createElement('div');
@@ -205,13 +256,14 @@ function materialize(blueprint,x,y,{id=nextId++,visible=true,animate=true,persis
   if (!animate) node.classList.add('restored');
   positionNode(node,x,y,rect);
   node.style.setProperty('--tone',blueprint.tone);
-  node.innerHTML = `<span class="anchor" aria-hidden="true"></span><div class="object-body">${sceneMarkup(blueprint)}</div><button class="object-hide" type="button" aria-label="${safe(blueprint.label)} ausblenden" title="Dieses Objekt ausblenden">×</button>`;
-  const instance = {id,blueprint,element:node,visible,x,y,rx:x/rect.width,ry:y/rect.height};
+  node.innerHTML = `<button class="anchor" type="button" aria-label="${safe(blueprint.label)} öffnen" title="Szene öffnen"></button><div class="object-body">${sceneMarkup(blueprint,variant)}</div><button class="object-hide" type="button" aria-label="${safe(blueprint.label)} ausblenden" title="Diese Szene ausblenden">×</button>`;
+  const instance = {id,blueprint,element:node,visible,variant,x,y,rx:x/rect.width,ry:y/rect.height};
   instances.push(instance);
+  focusedId = id;
   world.append(node);
   node.hidden=!visible;
+  node.querySelector('.anchor').addEventListener('click', event => { event.stopPropagation(); focusedId=id; updateLayers(); say(`${blueprint.label} geöffnet.`); });
   node.querySelector('.object-hide').addEventListener('click', event => { event.stopPropagation(); toggleInstance(id); });
-  connectTool(node);
   updateLayers();
   if (animate) {
     const pulse = document.createElement('span'); pulse.className='ground-pulse'; pulse.style.left=`${x}px`; pulse.style.top=`${y}px`; pulse.style.setProperty('--tone',blueprint.tone); world.append(pulse); instance.pulse=pulse;
@@ -254,8 +306,15 @@ async function place(blueprint, clientX, clientY, fromX, fromY) {
   if (pendingThrows.get(blueprint.id) === pending) pendingThrows.delete(blueprint.id);
   if (ownGeneration !== generation || throwEpochs.get(blueprint.id) !== epoch || flight.playState === 'idle') return;
   const rect = room.getBoundingClientRect();
-  materialize(blueprint,clientX-rect.left,clientY-rect.top);
-  say(`${blueprint.label} ist am neuen Ort gewachsen. Pro Kugeltyp bleibt genau ein Objekt im Raum.`);
+  const x = clientX - rect.left;
+  const y = clientY - rect.top;
+  const variant = blueprint.id === 'scarlet' ? (x >= rect.width/2 ? 2 : 0) + (y >= rect.height/2 ? 1 : 0) : Math.floor(Math.random() * 3);
+  materialize(blueprint,x,y,{variant});
+  if (blueprints[progress]?.id === blueprint.id) {
+    progress++;
+    updateStory();
+  }
+  say(`${blueprint.label} ist erschienen. ${storyPrompt.textContent}`);
 }
 
 room.addEventListener('click', event => {
@@ -280,12 +339,21 @@ $('#clear-all').addEventListener('click', event => {
   throwEpochs.clear();
   instances.length=0;
   nextId=1;
+  progress=0;
+  panelOpen=false;
+  focusedId=null;
   world.replaceChildren();
   throwLayer.replaceChildren();
-  openingHint.hidden=false;
+  updateStory();
   updateLayers();
   try { localStorage.removeItem(STORAGE_KEY); } catch { /* Session still clears. */ }
-  say('Raum geleert. Die Kugeln warten unten.');
+  say('Die Geschichte beginnt von vorn. Greif die erste Kugel.');
+});
+
+$('#layers-toggle').addEventListener('click', event => {
+  event.stopPropagation();
+  panelOpen = !panelOpen;
+  updateLayers();
 });
 
 function setHelp(open) {
@@ -299,19 +367,21 @@ window.addEventListener('keydown', event => { if (event.key==='Escape' && !$('#h
 
 function restoreRoom() {
   let raw;
-  try { raw=localStorage.getItem(STORAGE_KEY); } catch { return; }
-  if (!raw) return;
+  try { raw=localStorage.getItem(STORAGE_KEY); } catch { updateStory(); return; }
+  if (!raw) { updateStory(); return; }
   try {
     const rect=room.getBoundingClientRect();
     const decoded=decodeRoom(raw,new Set(blueprints.map(item=>item.id)),rect.width,rect.height);
     const records=latestByBlueprint(decoded);
     for (const record of records) {
-      materialize(findCapsule(record.blueprintId),record.x,record.y,{id:record.id,visible:record.visible,animate:false,persist:false});
+      materialize(findCapsule(record.blueprintId),record.x,record.y,{id:record.id,visible:record.visible,variant:record.variant,animate:false,persist:false});
       nextId=Math.max(nextId,record.id+1);
     }
-    if (records.length) { openingHint.hidden=true; say(`${records.length} gespeicherte Objekte im Raum.`); }
+    while (progress < blueprints.length && instances.some(item => item.blueprint.id === blueprints[progress].id)) progress++;
+    updateStory();
+    if (records.length) say(`${records.length} Szenen im Raum. ${storyPrompt.textContent}`);
     if (records.length !== decoded.length) saveRoom();
-  } catch { say('Gespeicherter Raum ist ungültig; diese Ansicht beginnt leer.'); }
+  } catch { updateStory(); say('Gespeicherter Raum ist ungültig; diese Ansicht beginnt leer.'); }
 }
 
 window.addEventListener('resize', () => {
@@ -322,5 +392,4 @@ window.addEventListener('resize', () => {
   }
 });
 
-renderCapsules();
 restoreRoom();

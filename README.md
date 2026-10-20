@@ -1,24 +1,25 @@
 # LUCINET / SEEDSPACE
 
-Lokaler Browser-Prototyp für Juri Janovskis räumliche Kapselidee. Ein Lichtpunkt wird in einen fast bildschirmfüllenden Raum gezogen. Am Ablagepunkt wächst eine Szene aus dem Punkt heraus. Weitere Punkte erzeugen weitere, gleichzeitig bestehende Objekte.
+Lokaler Browser-Prototyp für Juri Janovskis Kapselidee. Ein fast leerer Raum beginnt mit einer Kugel. Jeder erste Wurf entfaltet eine Szene und schaltet die nächste Kugel frei:
+
+1. Juri Janovski
+2. Eines von drei Forschungsthemen
+3. Die rote Stimme mit einem vom Ablageort abhängigen Mantra
+4. Eine von drei grafischen Überraschungen
+5. Juris Projektuniversum aus HALVETH, LUCINET, RED ROOM, Spielwelten und Connectoren
+
+Nach der letzten Kugel bleiben alle fünf nutzbar. Bereits platzierte Szenen ruhen als leuchtende Punkte am eigenen Ort. Ein Klick auf einen Punkt öffnet seine Szene wieder. Ein erneuter Wurf desselben Typs entfernt seine alte Szene sofort und setzt sie an den neuen Ort.
 
 ## Start
 
-Im Projektordner `python -m http.server 8851 --bind 127.0.0.1` ausführen und `http://127.0.0.1:8851/` öffnen. Keine Installation, externen Dienste oder Schlüssel erforderlich.
+`python -m http.server 8851 --bind 127.0.0.1` im Projektordner ausführen und [den lokalen Raum](http://127.0.0.1:8851/) öffnen. Es gibt keine Abhängigkeiten oder externen Dienste.
 
-## Bedienung
+## Bedienung und Daten
 
-- Lichtkugel unten greifen und an der gewünschten Stelle loslassen.
-- Alternativ Kugel antippen und danach im Raum einen Punkt wählen.
-- Mit Tastatur Kugel wählen, Raum fokussieren und Enter oder Leertaste drücken.
-- Jeder Kugeltyp hat genau ein Objekt im Raum. Derselbe Typ erneut geworfen: Die bisherige Szene verschwindet sofort und wächst am neuen Ablagepunkt. Andere Typen bleiben stehen.
-- Der Raumstand wird nur in diesem Browser gespeichert und nach dem Neuladen mit relativen Positionen wiederhergestellt.
-- Objekte über das kleine `×` oder die Liste „Im Raum“ ausblenden und über die Liste wieder einblenden.
-- „Raum leeren“ entfernt alle aktuell platzierten Instanzen.
-- Das `?` oben rechts enthält Anleitung und Bauplan-Vertrag.
+- Kugel greifen und im Raum loslassen; alternativ Kugel antippen und danach den Zielpunkt wählen.
+- Tastatur: Kugel wählen, Raum fokussieren, Enter oder Leertaste drücken.
+- Das Symbol oben rechts öffnet die Szenenliste. Dort lassen sich Szenen aus- und einblenden oder die Geschichte neu beginnen.
+- Die aktuelle Fassung verwendet den lokalen Schlüssel `lucinet.seedspace.room.v2`. Der frühere v1-Raum bleibt unter seinem bisherigen Schlüssel erhalten und wird nicht überschrieben.
+- Die Stimme ist eine lokale, vorformulierte Szenenreaktion auf den Ablageort. Die Seite liest keine Cookies, Kamera oder Mikrofon und stellt keine Netzverbindung her.
 
-## Modell
-
-`blueprints.js` enthält versionierte, reine Daten für vier registrierte Renderer: Person, Pflanze, Projektatlas und Rechenwerkzeug. `app.js` setzt Position und Richtung der Entfaltung am tatsächlichen Ablagepunkt. Die Wurfanimation führt zum Punkt, die Szene wächst dort. Pro Bauplan bleibt höchstens eine Instanz; ein neuer Wurf ersetzt den alten Ort samt altem Lichteffekt. `room-state.js` speichert nur Bauplan-IDs, relative Positionen und Sichtbarkeit im lokalen Browser. Alte lokale Räume mit doppelten Bauplänen werden beim Laden auf den jeweils letzten Ort reduziert. Das Microvalue-Werkzeug rechnet direkt im Browser.
-
-Die Kapsel führt keinen fremden Code aus und liest keine Excel-Datei. Eine spätere Projektkapsel könnte ein geprüftes, freigegebenes Datenpaket in einen isolierten Renderer laden. Die Browserfassung ist noch keine dreidimensionale Spielwelt und keine Morrowind-Integration; ihr Zustandsmodell ist als Ausgangspunkt dafür gedacht.
+`blueprints.js` registriert die fünf Renderer; Daten werden nicht als fremder Code ausgeführt. `room-state.js` speichert Bauplan-ID, relative Position, Sichtbarkeit und Variantenindex. Die visuelle Browserfassung ist noch keine dreidimensionale Spielwelt.

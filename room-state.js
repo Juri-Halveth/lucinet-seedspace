@@ -1,4 +1,4 @@
-export const ROOM_SCHEMA = 'seedspace.room.v1';
+export const ROOM_SCHEMA = 'seedspace.room.v2';
 
 export function encodeRoom(instances, width, height) {
   if (!(width > 0 && height > 0)) throw new Error('Invalid room dimensions');
@@ -9,7 +9,8 @@ export function encodeRoom(instances, width, height) {
     blueprintId: item.blueprint.id,
     x: item.x / width,
     y: item.y / height,
-    visible: item.visible
+    visible: item.visible,
+    variant: item.variant ?? 0
   }));
   return JSON.stringify({schema: ROOM_SCHEMA, items});
 }
@@ -29,10 +30,11 @@ export function decodeRoom(raw, allowedIds, width, height) {
   return data.items.map(item => {
     if (!Number.isSafeInteger(item.id) || item.id < 1 || seen.has(item.id) ||
         !allowedIds.has(item.blueprintId) || !Number.isFinite(item.x) || !Number.isFinite(item.y) ||
-        item.x < 0 || item.x > 1 || item.y < 0 || item.y > 1 || typeof item.visible !== 'boolean') {
+        item.x < 0 || item.x > 1 || item.y < 0 || item.y > 1 || typeof item.visible !== 'boolean' ||
+        !Number.isInteger(item.variant) || item.variant < 0 || item.variant > 3) {
       throw new Error('Invalid room object');
     }
     seen.add(item.id);
-    return {id:item.id, blueprintId:item.blueprintId, x:item.x*width, y:item.y*height, visible:item.visible};
+    return {id:item.id, blueprintId:item.blueprintId, x:item.x*width, y:item.y*height, visible:item.visible, variant:item.variant};
   });
 }

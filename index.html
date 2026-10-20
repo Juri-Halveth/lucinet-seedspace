@@ -4,55 +4,50 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#05050a">
-  <meta name="description" content="LUCINET Seedspace: Lichtpunkte in einen Raum werfen. Jeder Punkt wächst an seinem Ort zu einer bleibenden Szene.">
+  <meta name="description" content="LUCINET Seedspace: Wirf Lichtkapseln in den Raum und entdecke Juris Projektuniversum.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
   <title>LUCINET / SEEDSPACE</title>
   <link rel="stylesheet" href="./style.css">
-  <script type="module" src="./app.js?v=2"></script>
+  <script type="module" src="./app.js?v=3"></script>
 </head>
 <body>
   <a class="skip" href="#room">Direkt zum Raum</a>
-  <main id="room" class="room" tabindex="0" aria-label="Seedspace. Lichtkapsel unten auswählen und hier platzieren oder direkt hineinziehen.">
+  <main id="room" class="room" tabindex="0" aria-label="Seedspace. Kugel unten greifen und in den Raum werfen.">
     <div class="stars" aria-hidden="true"></div>
     <div class="nebula" aria-hidden="true"></div>
     <div class="floor" aria-hidden="true"></div>
     <div class="world-ring" aria-hidden="true"></div>
-
     <header class="chrome">
-      <div class="identity"><span class="logo">L<span>·</span></span><div><strong>LUCINET</strong><small>SEEDSPACE / 02</small></div></div>
-      <div class="chrome-right"><span class="live-mark"><i></i> EIN RAUM · VIELE WELTEN</span><button id="help-toggle" type="button" aria-expanded="false" aria-controls="help-panel">? <span>Wie geht das?</span></button></div>
+      <div class="identity" aria-label="LUCINET Seedspace"><span class="logo">L<span>·</span></span><div><strong>LUCINET</strong><small>SEEDSPACE</small></div></div>
+      <div class="chrome-right">
+        <button id="layers-toggle" class="icon-button" type="button" aria-label="Szenen verwalten" aria-expanded="false" aria-controls="layers-panel" hidden>◫</button>
+        <button id="help-toggle" class="icon-button" type="button" aria-label="Hilfe öffnen" aria-expanded="false" aria-controls="help-panel">?</button>
+      </div>
     </header>
-
     <div id="opening-hint" class="opening-hint" aria-hidden="true">
       <div class="hint-orbit"><span class="hint-spark"></span><span class="hint-trail"></span></div>
-      <h1>Wirf einen Punkt<br><em>in diesen Raum.</em></h1>
-      <p>Die Kugeln unten greifen und hier loslassen.</p>
-      <div class="hint-chevron">↑</div>
+      <h1>Hey.<br><em>Nimm diese Kugel.</em></h1>
+      <p>Wirf sie in den Raum.</p>
+      <div class="hint-chevron">↓</div>
     </div>
-
-    <div id="world" class="world" aria-live="polite" aria-label="Entfaltete Objekte"></div>
+    <div id="world" class="world" aria-live="polite" aria-label="Entfaltete Szenen"></div>
     <div id="target-preview" class="target-preview" aria-hidden="true"></div>
     <div id="throw-layer" class="throw-layer" aria-hidden="true"></div>
-
-    <aside id="layers-panel" class="layers-panel" aria-label="Objekte im Raum" hidden>
-      <div class="layers-head"><span>IM RAUM <b id="object-count">0</b></span><button id="clear-all" type="button" title="Alle Objekte entfernen">Raum leeren</button></div>
+    <aside id="layers-panel" class="layers-panel" aria-label="Szenen im Raum" hidden>
+      <div class="layers-head"><span>SZENEN <b id="object-count">0</b></span><button id="clear-all" type="button">Neu beginnen</button></div>
       <div id="layers" class="layers"></div>
     </aside>
-
     <aside id="help-panel" class="help-panel" hidden aria-label="Anleitung und Technik">
-      <button id="help-close" class="help-close" type="button" aria-label="Anleitung schließen">×</button>
-      <span class="kicker">SO BENUTZT DU DEN RAUM</span>
-      <h2>Greifen. Werfen. Wachsen lassen.</h2>
-      <ol><li>Unten eine Lichtkugel greifen.</li><li>Sie in den Raum ziehen und loslassen.</li><li>Weitere Kugeln werfen: Verschiedene Arten bleiben nebeneinander. Derselbe Typ zieht an den neuen Ort um.</li></ol>
-      <p>Du kannst auch eine Kugel antippen und dann im Raum einen Punkt wählen. Im Bereich „Im Raum“ blendest du einzelne Objekte aus und wieder ein. Der Raumstand bleibt lokal in diesem Browser gespeichert.</p>
+      <button id="help-close" class="help-close" type="button" aria-label="Hilfe schließen">×</button>
+      <span class="kicker">LUCINET / SEEDSPACE</span>
+      <h2>Eine Kugel. Eine Entdeckung.</h2>
+      <p>Greif die leuchtende Kugel und lass sie im Raum los. Oder tippe sie an und wähle danach eine Stelle. Nach jedem ersten Wurf wartet die nächste Kugel. Frühere Szenen ruhen als leuchtende Punkte: Antippen öffnet sie wieder. Derselbe Kugeltyp ersetzt seine frühere Szene am neuen Ort.</p>
+      <p>Die Stimme antwortet nur auf Würfe in diesem Browserraum. Sie liest weder Cookies noch Kamera oder Mikrofon. Dein Raum bleibt lokal in diesem Browser.</p>
       <details><summary>Technischer Bauplan</summary><pre id="manifest-preview"></pre></details>
     </aside>
-
-    <nav class="dock" aria-label="Lichtkapseln">
-      <div class="dock-callout"><span class="dock-arrow" aria-hidden="true">↗</span><strong>KUGEL GREIFEN</strong><small>in den Raum ziehen & loslassen</small></div>
-      <div id="capsules" class="capsules"></div>
-    </nav>
-    <p id="live-status" class="live-status" role="status" aria-live="polite">Greif eine Lichtkugel und wirf sie in den Raum.</p>
+    <div class="story-rail" aria-hidden="true"><span id="story-counter">01 / 05</span><p id="story-prompt">Nimm die Kugel.</p></div>
+    <nav class="dock" aria-label="Lichtkapseln"><div id="capsules" class="capsules"></div></nav>
+    <p id="live-status" class="live-status" role="status" aria-live="polite">Greif die erste Lichtkugel und wirf sie in den Raum.</p>
     <div id="drag-ghost" class="drag-ghost" aria-hidden="true"></div>
   </main>
 </body>

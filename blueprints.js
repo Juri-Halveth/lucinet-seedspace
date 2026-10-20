@@ -1,15 +1,16 @@
-export const BLUEPRINT_VERSION = 'seedspace.blueprint.v1';
+export const BLUEPRINT_VERSION = 'seedspace.blueprint.v2';
 
 // Data chooses a registered renderer. It is never treated as executable code.
 export const blueprints = Object.freeze([
-  {id:'origin', label:'JURI / ORIGIN', kind:'profile', description:'Eine Person wird sichtbar.', tone:'#efc6b2', icon:'✦'},
-  {id:'garden', label:'GARDEN / 01', kind:'garden', description:'Ein Punkt schlägt Wurzeln.', tone:'#aeedc2', icon:'✺'},
-  {id:'atlas', label:'PROJECT / ATLAS', kind:'projects', description:'Ein Portfolio entfaltet sich.', tone:'#b5c7ff', icon:'◇'},
-  {id:'matrix', label:'TOOL / MATRIX', kind:'tool', description:'Aus Licht wird ein Werkzeug.', tone:'#f8dc9d', icon:'▦'}
+  {id:'origin', label:'JURI', kind:'profile', description:'Der Mensch hinter dem Raum.', tone:'#f1c9b2', icon:'✦'},
+  {id:'signal', label:'SPUR', kind:'signal', description:'Ein wechselndes Forschungsthema.', tone:'#9de7ef', icon:'◈'},
+  {id:'scarlet', label:'STIMME', kind:'scarlet', description:'Eine Stimme antwortet auf den Wurf.', tone:'#ff426e', icon:'✺'},
+  {id:'wonder', label:'UNBEKANNT', kind:'wonder', description:'Eine überraschende Form erscheint.', tone:'#c7a5ff', icon:'✳'},
+  {id:'universe', label:'UNIVERSUM', kind:'projects', description:'Projekte und Verbindungen werden sichtbar.', tone:'#f9d999', icon:'✧'}
 ]);
 
 export function validateBlueprints(items) {
-  const kinds = new Set(['profile', 'garden', 'projects', 'tool']);
+  const kinds = new Set(['profile', 'signal', 'scarlet', 'wonder', 'projects']);
   if (!Array.isArray(items) || items.length === 0) throw new Error('Blueprint list is empty');
   const ids = new Set();
   for (const item of items) {
