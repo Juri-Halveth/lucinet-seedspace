@@ -227,11 +227,18 @@ function toggleInstance(id) {
 function positionNode(node,x,y,rect) {
   const preferredWidths = {origin:[310,.78],signal:[330,.82],scarlet:[330,.82],wonder:[320,.82],universe:[450,.88]};
   const [pixels, ratio] = preferredWidths[node.dataset.blueprintId] || [330,.82];
-  const width = Math.min(pixels, rect.width * ratio);
+  const width = Math.min(pixels, rect.width <= 580 ? rect.width - 28 : rect.width * ratio);
   const left = Math.max(12, Math.min(rect.width - width - 12, x - width/2));
+  node.style.setProperty('--object-width', `${width}px`);
   node.style.setProperty('--body-offset', `${left - x}px`);
   node.style.setProperty('--growth-origin', `${Math.max(0,Math.min(100,(x-left)/width*100))}%`);
-  node.classList.toggle('grow-down',y < 240);
+  const mobile = rect.width <= 580;
+  const sceneHeight = {origin:290,signal:335,scarlet:290,wonder:270,universe:395}[node.dataset.blueprintId] || 335;
+  const above = y - (mobile ? 62 : 24);
+  const below = rect.height - y - (mobile ? 112 : 24);
+  const growDown = mobile ? (below >= sceneHeight || below > above) && above < sceneHeight : y < 240;
+  node.classList.toggle('grow-down',growDown);
+  node.style.setProperty('--space-height', `${Math.max(110, (growDown ? below : above) - 10)}px`);
   node.style.setProperty('--x',`${x}px`);
   node.style.setProperty('--y',`${y}px`);
 }

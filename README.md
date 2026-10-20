@@ -1,6 +1,6 @@
 # LUCINET / SEEDSPACE
 
-Lokaler Browser-Prototyp für Juri Janovskis Kapselidee. Ein fast leerer Raum beginnt mit einer Kugel. Jeder erste Wurf entfaltet eine Szene und schaltet die nächste Kugel frei:
+Interaktiver Browserraum für Juri Janovskis Kapselidee: **[Seedspace öffnen](https://juri-halveth.github.io/lucinet-seedspace/)**. Auf dem Handy beginnt er bildschirmfüllend mit einer einzigen Kugel. Jeder erste Wurf entfaltet eine Szene und schaltet die nächste Kugel frei:
 
 1. Juri Janovski
 2. Eines von drei Forschungsthemen
@@ -12,14 +12,15 @@ Nach der letzten Kugel bleiben alle fünf nutzbar. Bereits platzierte Szenen ruh
 
 ## Start
 
-`python -m http.server 8851 --bind 127.0.0.1` im Projektordner ausführen und [den lokalen Raum](http://127.0.0.1:8851/) öffnen. Es gibt keine Abhängigkeiten oder externen Dienste.
+`python -m http.server 8851 --bind 127.0.0.1` im Projektordner ausführen und [den lokalen Raum](http://127.0.0.1:8851/) öffnen. Das Projekt benötigt keine Build-Abhängigkeiten. Die veröffentlichte Fassung wird als statische Seite über GitHub Pages ausgeliefert.
 
 ## Bedienung und Daten
 
 - Kugel greifen und im Raum loslassen; alternativ Kugel antippen und danach den Zielpunkt wählen.
+- Die Telefonansicht nutzt die ganze Bildschirmhöhe. Szenen wachsen vom gewählten Punkt aus und passen ihre Richtung an den freien Platz an.
 - Tastatur: Kugel wählen, Raum fokussieren, Enter oder Leertaste drücken.
 - Das Symbol oben rechts öffnet die Szenenliste. Dort lassen sich Szenen aus- und einblenden oder die Geschichte neu beginnen.
 - Die aktuelle Fassung verwendet den lokalen Schlüssel `lucinet.seedspace.room.v2`. Der frühere v1-Raum bleibt unter seinem bisherigen Schlüssel erhalten und wird nicht überschrieben.
-- Die Stimme ist eine lokale, vorformulierte Szenenreaktion auf den Ablageort. Die Seite liest keine Cookies, Kamera oder Mikrofon und stellt keine Netzverbindung her.
+- Die Stimme ist eine lokale, vorformulierte Szenenreaktion auf den Ablageort. Die Seite liest keine Cookies, Kamera oder Mikrofon und ruft im Betrieb keine externe API auf.
 
 `blueprints.js` registriert die fünf Renderer; Daten werden nicht als fremder Code ausgeführt. `room-state.js` speichert Bauplan-ID, relative Position, Sichtbarkeit und Variantenindex. Die visuelle Browserfassung ist noch keine dreidimensionale Spielwelt.
