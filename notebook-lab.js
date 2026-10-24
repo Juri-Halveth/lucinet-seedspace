@@ -1,4 +1,4 @@
-import {BOARD,addSlot,moveSlot,renewSlot,releaseSlot,advanceNotebook,demoNotebook,slotStatus,validNotebook} from './notebook-model.js?v=1';
+import {BOARD,addSlot,moveSlot,renewSlot,releaseSlot,advanceNotebook,demoNotebook,slotStatus,validNotebook} from './notebook-model.js?v=2';
 
 const $ = selector => document.querySelector(selector);
 const STORE='lucinet.seedspace.notebook-lab.v1';
