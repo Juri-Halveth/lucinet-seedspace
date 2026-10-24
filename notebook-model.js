@@ -52,6 +52,8 @@ function fit(state, x, y, radius, exceptId = null) {
 function nextEvent(state, message) { note(state,message); return state; }
 
 export function addSlot(state, {title,text,x,y,radius}) {
+  if (!validNotebook(state)) throw new Error('Der gespeicherte Notizraum ist ungültig.');
+  if (state.nextId >= Number.MAX_SAFE_INTEGER) throw new Error('Die sichere Zahl der Platzadressen ist ausgeschöpft.');
   if (state.slots.length >= BOARD.maxSlots) throw new Error('Alle acht Plätze sind belegt.');
   title = String(title ?? '').trim(); text = String(text ?? '').trim();
   if (!title || title.length > 48) throw new Error('Titel: 1–48 Zeichen.');
@@ -120,13 +122,18 @@ export function demoNotebook(day='2026-10-20') {
 
 export function validNotebook(state) {
   try {
-    if (!state || state.schema!==NOTEBOOK_SCHEMA || !Array.isArray(state.slots) || !Array.isArray(state.archive) || !Array.isArray(state.events) || !Number.isInteger(state.nextId) || state.nextId<1 || state.slots.length>BOARD.maxSlots || state.archive.length>1000 || state.events.length>100) return false;
+    if (!state || state.schema!==NOTEBOOK_SCHEMA || !Array.isArray(state.slots) || !Array.isArray(state.archive) || !Array.isArray(state.events) || !Number.isSafeInteger(state.nextId) || state.nextId<1 || state.slots.length>BOARD.maxSlots || state.archive.length>1000 || state.events.length>100) return false;
     dateOnly(state.day);
     const ids=new Set();
-    for (const slot of state.slots) {
-      if (!/^K\d{2,}$/.test(slot.id) || ids.has(slot.id) || typeof slot.title!=='string' || slot.title.length>48 || typeof slot.text!=='string' || slot.text.length>280 || !Number.isInteger(slot.terms) || slot.termEndsAt!==termEnd(slot.startAt,slot.terms) || !Number.isInteger(slot.honor) || slot.honor<0 || slot.honor>slot.terms-1 || slotStatus(slot,state.day)==='released') return false;
-      fit({...state,slots:state.slots.filter(item=>item.id!==slot.id)},slot.x,slot.y,slot.radius);
+    for (const slot of [...state.slots,...state.archive]) {
+      if (!slot || typeof slot.id!=='string' || !/^K\d{2,}$/.test(slot.id) || ids.has(slot.id)) return false;
+      const sequence=Number(slot.id.slice(1));
+      if (!Number.isSafeInteger(sequence) || sequence<1 || sequence>=state.nextId || slot.id!==`K${String(sequence).padStart(2,'0')}`) return false;
       ids.add(slot.id);
+    }
+    for (const slot of state.slots) {
+      if (typeof slot.title!=='string' || slot.title.length>48 || typeof slot.text!=='string' || slot.text.length>280 || !Number.isInteger(slot.terms) || slot.termEndsAt!==termEnd(slot.startAt,slot.terms) || !Number.isInteger(slot.honor) || slot.honor<0 || slot.honor>slot.terms-1 || slotStatus(slot,state.day)==='released') return false;
+      fit({...state,slots:state.slots.filter(item=>item.id!==slot.id)},slot.x,slot.y,slot.radius);
     }
     return state.events.every(item=>typeof item.message==='string' && item.message.length<=200 && typeof item.day==='string') && state.archive.every(item=>typeof item.id==='string' && typeof item.title==='string' && typeof item.text==='string');
   } catch { return false; }
