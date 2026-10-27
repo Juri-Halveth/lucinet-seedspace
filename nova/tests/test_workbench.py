@@ -174,7 +174,7 @@ class WorkbenchTests(unittest.TestCase):
         self.assertTrue(self.w.run("broken", mode="FLOW")["result"]["hits"])
 
     def test_index_read_stays_bounded_if_file_grows_after_stat(self):
-        source = self.root / "growing.txt"
+        source = (self.root / "growing.txt").resolve()
         source.write_bytes(b"x")
         original = Path.open
         reads = []
