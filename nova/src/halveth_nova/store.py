@@ -422,7 +422,8 @@ class NovaStore:
         import zipfile
         self.require()
         target = Path(target).resolve()
-        if target == self.nova or self.nova in target.parents:
+        nova_anchor = self.nova.resolve()
+        if target == nova_anchor or nova_anchor in target.parents:
             raise ValueError("export target must be outside .nova")
         target.parent.mkdir(parents=True, exist_ok=True)
         with self.write_lock():

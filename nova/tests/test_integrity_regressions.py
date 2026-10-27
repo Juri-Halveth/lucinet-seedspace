@@ -145,6 +145,33 @@ class IntegrityRegressions(unittest.TestCase):
             self.engine.store.export_zip(self.engine.store.config_path)
         self.assertEqual(self.engine.store.config_path.read_bytes(), config)
 
+    def test_export_rejects_target_inside_linked_nova_directory(self):
+        workspace = self.root / "linked-workspace"
+        backing = self.root / "linked-data"
+        workspace.mkdir()
+        backing.mkdir()
+        anchor = workspace / ".nova"
+        if os.name == "nt":
+            result = subprocess.run(["cmd.exe", "/d", "/c", "mklink", "/J", str(anchor), str(backing)],
+                                    capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            self.assertEqual(result.returncode, 0, result.stderr)
+        else:
+            anchor.symlink_to(backing, target_is_directory=True)
+        try:
+            self.assertEqual(anchor.resolve(), backing.resolve())
+            engine = NovaEngine(workspace)
+            engine.init("linked")
+            config = engine.store.config_path.read_bytes()
+            with self.assertRaises(ValueError):
+                engine.store.export_zip(engine.store.config_path)
+            self.assertEqual(engine.store.config_path.read_bytes(), config)
+        finally:
+            # The link and target are both inside this test's owned temp root.
+            if os.name == "nt":
+                os.rmdir(anchor)
+            else:
+                anchor.unlink()
+
     def test_live_writer_is_not_reclaimed_by_age(self):
         with self.engine.store.write_lock():
             old = time.time() - 3600
