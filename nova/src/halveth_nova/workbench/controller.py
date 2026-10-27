@@ -519,6 +519,14 @@ class Workbench:
                     version = tuple(int(x) for x in result.get("controller_version", "0.0.0").split("."))
                     if manifest_ref is None and version >= (2, 0, 2):
                         raise ValueError("BUILD_MANIFEST_BINDING_MISSING")
+                    if manifest_ref is None:
+                        # Older finalized kits have no separate manifest descriptor,
+                        # but their exact manifest is reconstructible from this bound result.
+                        legacy_manifest = {k: v for k, v in build.items()
+                                           if k not in {"directory", "viewer", "manifest"}}
+                        expected = (canonical_json(legacy_manifest) + "\n").encode("utf-8")
+                        if (target / "BUILD_MANIFEST.json").read_bytes() != expected:
+                            raise ValueError("BUILD_MANIFEST_CHANGED")
                     if manifest_ref is not None:
                         manifest_file = (target / manifest_ref["path"]).resolve()
                         if not manifest_file.is_relative_to(target) or manifest_file.name != "BUILD_MANIFEST.json":

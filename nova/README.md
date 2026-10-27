@@ -1,6 +1,9 @@
-# NOVA 2.0.2 · Research Workbench
+# NOVA 2.0.3 · Research Workbench
 
 Read a bounded source collection, recover earlier work, compare declared structures across names, run a countertest, and build a reusable program with a receipt. The continuity core remains available with its existing commands, including the published 1.2.1 integrity and locking fixes.
+
+The [2.0.3 maintenance notes](MAINTENANCE_2_0_3.md) describe the combined
+workbench repairs, legacy build verification and regression coverage.
 
 ```bash
 # Python 3.11+, no package installation for the base workbench
