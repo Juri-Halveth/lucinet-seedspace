@@ -1,0 +1,50 @@
+{
+  "contract": "nova.bounty-impact-spec.v1",
+  "program": {
+    "name": "TRON DAO",
+    "policy_url": "https://hackerone.com/tron_dao",
+    "policy_checked_at": "2026-10-27",
+    "authorized_asset": "https://github.com/tronprotocol/java-tron",
+    "reward_ceiling_usd": {
+      "LOW": "2000",
+      "MEDIUM": "10000",
+      "HIGH": "25000",
+      "CRITICAL": "100000"
+    }
+  },
+  "finding": {
+    "title": "Synthetic integrity fixture demonstrates the impact-gate contract",
+    "asset": "https://github.com/tronprotocol/java-tron/synthetic-fixture",
+    "scope_state": "DECLARED_IN_SCOPE",
+    "expected": "A synthetic mismatched state is rejected.",
+    "observed": "The local synthetic fixture accepts the mismatch before its synthetic repair.",
+    "security_property": "INTEGRITY",
+    "impact": "The fixture demonstrates a state-integrity failure without touching TRON networks or user data.",
+    "action_required": "Correct the synthetic validation decision and preserve the regression control.",
+    "candidate_severity": "UNKNOWN",
+    "severity_basis": "UNKNOWN"
+  },
+  "proof": {
+    "environment": "LOCAL_FIXTURE",
+    "state": "LOCAL_REPRODUCED",
+    "runs": 2,
+    "successes": 2,
+    "negative_control": "A matching synthetic state remains accepted.",
+    "remediation_control": "The repaired synthetic fixture rejects the mismatched state."
+  },
+  "root_cause": {
+    "invariant": "A referenced digest must bind the accepted synthetic state.",
+    "trust_boundary": "Synthetic untrusted state input enters the validation decision.",
+    "code_path": "synthetic/StateGate.java",
+    "faulty_decision": "The synthetic decision trusts a locator without binding digest equality.",
+    "minimal_fix": "Require digest equality before the synthetic state can be accepted."
+  },
+  "known_patterns": [],
+  "evidence_refs": [
+    {"id": "policy-capture", "digest": "0000000000000000000000000000000000000000000000000000000000000000", "supports": "policy"},
+    {"id": "scope-note", "digest": "1111111111111111111111111111111111111111111111111111111111111111", "supports": "scope"},
+    {"id": "synthetic-repro", "digest": "2222222222222222222222222222222222222222222222222222222222222222", "supports": "reproduction"},
+    {"id": "synthetic-impact", "digest": "3333333333333333333333333333333333333333333333333333333333333333", "supports": "impact"},
+    {"id": "synthetic-root", "digest": "4444444444444444444444444444444444444444444444444444444444444444", "supports": "root_cause"}
+  ]
+}
