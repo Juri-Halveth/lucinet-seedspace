@@ -41,6 +41,25 @@ Rules:
 7. Use `work` for the executable controller and `run` for the original receipt writer. Select adapters, model and integration explicitly; inspect `capabilities` before requiring optional dependencies.
 8. Bind a useful next action and its outcome. For function builds, prebind the specification and withheld cases, preserve rejected candidates, then search for the generated result in the next run. Value-flow assessment keeps effect evidence, a declared business scenario, price and funding decision separate.
 
+## Security findings: sharpen impact without unsafe escalation
+
+For an authorized security-research seed, do not stop at a scanner flag or parser
+difference. Preserve the flag, then distinguish:
+
+`FLAG → REPRODUCED SIGNAL → IMPACT → ROOT CAUSE → REMEDIATION CONTROL → REPORT CANDIDATE`
+
+Use the local `bounty-impact` contract when appropriate. Bind the program policy and
+asset, use only a safe/authorized reproduction environment, include a negative
+control, state the concrete security property changed, identify the invariant and
+faulty decision, and test whether the proposed remediation removes the observed
+effect. Compare exact root-cause signatures against the declared local corpus before
+calling something distinct. A non-match does not prove that a private bounty report
+does not already exist.
+
+Do not inflate severity from interesting syntax, unusual output or theoretical reach.
+Reward tables are context, not evidence. Keep final submission and any live retest as
+separate human decisions under the current program rules.
+
 ## Association expansion: ESSENCE_FARM
 
 A name, symbol or cross-domain association can be a research seed. Before

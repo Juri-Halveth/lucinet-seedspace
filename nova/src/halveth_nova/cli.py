@@ -80,6 +80,9 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("value-flow", help="bind a value inquiry, measurement gaps and an optional declared cost scenario")
     s.add_argument("spec")
 
+    s = sub.add_parser("bounty-impact", help="sharpen a declared finding into scope, reproduction, impact, root-cause and duplicate gates")
+    s.add_argument("spec")
+
     s = sub.add_parser("transcribe", help="derive a transcript with an existing offline speech model directory")
     s.add_argument("path"); s.add_argument("--model-directory", required=True); s.add_argument("--language")
     s.add_argument("--seconds", type=int, default=30)
@@ -230,6 +233,27 @@ def main(argv: list[str] | None = None) -> int:
             record = store.ingest_bytes("derived/" + source["source_id"] + "/value-flow.json",
                 (canonical_json(result) + "\n").encode("utf-8"), tags=["value-flow-result"],
                 metadata={"parent_source_id": source["source_id"], "parent_digest": source["digest"], "state": "DECLARED_SCENARIO"})
+            emit({"result": result, "record": record})
+        elif args.command == "bounty-impact":
+            from .workbench.bounty_impact import assess
+            from .jsonutil import strict_loads, canonical_json
+            file = Path(args.spec).resolve()
+            if file.stat().st_size > 100000:
+                raise ValueError("BOUNTY_INPUT_LIMIT")
+            raw = file.read_bytes(); spec = strict_loads(raw.decode("utf-8"))
+            source = store.ingest_bytes(store._locator_for(file, file), raw, tags=["bounty-impact-input"])
+            verified_evidence = set()
+            for ref in spec.get("evidence_refs", []):
+                try:
+                    stored = store.source_by_id(ref.get("id", ""))
+                except KeyError:
+                    continue
+                if stored.get("digest") == ref.get("digest"):
+                    verified_evidence.add(ref["id"])
+            result = assess(spec, verified_evidence=verified_evidence)
+            record = store.ingest_bytes("derived/" + source["source_id"] + "/bounty-impact.json",
+                (canonical_json(result) + "\n").encode("utf-8"), tags=["bounty-impact-assessment"],
+                metadata={"parent_source_id": source["source_id"], "parent_digest": source["digest"], "state": result["state"]})
             emit({"result": result, "record": record})
         elif args.command == "universe":
             from .workbench.github_adapter import inventory
