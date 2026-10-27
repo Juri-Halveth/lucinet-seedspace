@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 from halveth_nova.engine import NovaEngine
 from halveth_nova.jsonutil import sha256_json
-from halveth_nova.workbench.adapters import extract
+from halveth_nova.workbench.adapters import MAX_BYTES, extract
 from halveth_nova.workbench.controller import Workbench
 from halveth_nova.workbench.graph import CONTRACT, structural_match, unknown_key, validate_graph
 from halveth_nova.workbench.local_model import bind_compilation
@@ -165,6 +165,48 @@ class WorkbenchTests(unittest.TestCase):
         self.assertIn("Hallo Ω", result["text"])
         self.assertTrue(result["gaps"])
 
+    def test_corrupt_docx_becomes_failed_analysis_without_blocking_workspace(self):
+        broken = self.root / "broken.docx"
+        broken.write_bytes(b"not a zip")
+        receipt = self.w.index([broken])
+        self.assertEqual(receipt["adapter_failures"][0]["reason"], "BadZipFile")
+        self.assertEqual(self.w.analyses()[0]["analysis"]["adapter"], "FAILED")
+        self.assertTrue(self.w.run("broken", mode="FLOW")["result"]["hits"])
+
+    def test_index_read_stays_bounded_if_file_grows_after_stat(self):
+        source = self.root / "growing.txt"
+        source.write_bytes(b"x")
+        original = Path.open
+        reads = []
+        class BoundedReader(io.BytesIO):
+            def read(reader, size=-1):
+                reads.append(size)
+                return super().read(size)
+        def opening(path, *args, **kwargs):
+            if path == source and args and args[0] == "rb":
+                return BoundedReader(b"x" * (MAX_BYTES + 100))
+            return original(path, *args, **kwargs)
+        with patch.object(Path, "open", opening):
+            receipt = self.w.index([source])
+        self.assertEqual(reads, [MAX_BYTES + 1])
+        self.assertEqual(receipt["held"][0]["reason"], "MAX_BYTES_AFTER_READ")
+        self.assertEqual(receipt["admitted"], [])
+
+    def test_model_oversized_query_pattern_is_kept_open_not_executed(self):
+        nodes = [{"id": "n" + str(i), "kind": "ACTOR", "label": "N" + str(i)} for i in range(9)]
+        compiled = {"contract": "nova.local-concept-compilation.v1", "model": "fixture",
+                    "provider": "TEST", "endpoint": "NONE", "input_digest": "0" * 64,
+                    "response_digest": "1" * 64,
+                    "graph": {"contract": CONTRACT, "id": "wide", "domain": "test",
+                              "nodes": nodes, "edges": []},
+                    "aliases": [], "open_questions": [], "bindings": [], "metrics": {},
+                    "state": "MODEL_INFERRED", "authority": "NONE"}
+        with patch("halveth_nova.workbench.local_model.compile_concepts", return_value=compiled):
+            result = self.w.run("wide query", mode="ATLAS", model="fixture")["result"]
+        self.assertEqual(result["coverage"]["task_interpretation"]["reason"], "PATTERN_NODE_LIMIT_8")
+        self.assertEqual(result["coverage"]["task_interpretation"]["nodes"], 9)
+        self.assertEqual(result["structural_matches"], [])
+
     def test_wav_signal_is_not_claimed_as_transcription(self):
         buffer = io.BytesIO()
         with wave.open(buffer, "wb") as w:
@@ -226,6 +268,12 @@ class WorkbenchTests(unittest.TestCase):
         (self.root / result["build"]["viewer"]).write_bytes(b"changed")
         self.assertIn("BUILD_ARTIFACT_CHANGED", self.w.verify()["errors"])
 
+    def test_generated_kit_manifest_tampering_is_detected(self):
+        result = self.w.run("build", mode="BUILD")["result"]
+        manifest = self.root / result["build"]["directory"] / result["build"]["manifest"]["path"]
+        manifest.write_bytes(b'{"compile":"FAIL","files":[]}\n')
+        self.assertIn("BUILD_MANIFEST_CHANGED", self.w.verify()["errors"])
+
     def test_index_budget_leaves_unvisited_tail_explicit(self):
         for n in range(5):
             self.write(str(n) + ".txt", "text")
@@ -279,7 +327,22 @@ class WorkbenchTests(unittest.TestCase):
         self.assertEqual(result["selected_unknown"]["field"], "value_measurement_plan")
         self.assertTrue(self.w.verify()["ok"])
         old_file.write_bytes(b"{}")
-        self.assertIn("HISTORICAL_ANALYSIS_BINDING_CHANGED", self.w.verify()["errors"])
+        errors = self.w.verify()["errors"]
+        self.assertTrue(any(e in errors for e in ("HISTORICAL_ANALYSIS_BINDING_CHANGED",
+                                                  "HISTORICAL_ANALYSIS_BYTES_CHANGED")))
+
+    def test_legacy_analysis_archive_deletion_is_detected(self):
+        source = self.value_record(); self.w.compile_sources()
+        path = self.w.home / "analyses" / (source["source_id"] + ".json")
+        row = json.loads(path.read_text()); row.pop("adapter_bundle_version")
+        row["analysis"]["adapter"] = "utf8-text"; row["analysis"].pop("unknowns")
+        row.pop("analysis_digest"); row["analysis_digest"] = sha256_json(row)
+        path.write_bytes(json.dumps(row).encode())
+        self.w.run("value measurement", mode="DEEP")
+        old_file = self.w.home / "analysis-history" / (row["analysis_digest"] + ".json")
+        self.assertTrue(old_file.is_file())
+        old_file.unlink()
+        self.assertIn("HISTORICAL_ANALYSIS_MISSING", self.w.verify()["errors"])
 
     def test_retracted_value_assessment_does_not_create_active_measurement_question(self):
         source = self.value_record()
