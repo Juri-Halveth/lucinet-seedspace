@@ -1,4 +1,4 @@
-# NOVA 2.0.1 · Research Workbench
+# NOVA 2.0.2 · Research Workbench
 
 Read a bounded source collection, recover earlier work, compare declared structures across names, run a countertest, and build a reusable program with a receipt. The continuity core remains available with its existing commands, including the published 1.2.1 integrity and locking fixes.
 
@@ -18,6 +18,10 @@ The 2.0.1 continuation patch admits declared value-inquiry questions into the
 work controller. Current-task relevance precedes recurrence when selecting a
 question; the selected question and next action enter the resume seed. Adapter
 upgrades preserve earlier cache bytes in a verified history.
+
+The [2.0.2 maintenance notes](MAINTENANCE_2_0_2.md) describe bounded source
+reads, recoverable document parse failures, query-size admission, exact build
+manifest checks and persistent byte bindings for archived analyses.
 
 ## Preserved continuity core
 

@@ -4,6 +4,7 @@ import json
 import os
 import re
 import uuid
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +56,58 @@ class Workbench:
             raise ValueError("SOURCE_OBJECT_CHANGED")
         return data
 
+    def _history_sources(self) -> dict[str, dict]:
+        records = {}
+        for source in self.store.sources():
+            if "workbench-history" not in source.get("tags", []):
+                continue
+            name = source.get("metadata", {}).get("archive_name", "")
+            if (not re.fullmatch(r"[a-f0-9]{64}\.json", name)
+                    or source["locator"] != "workbench/analysis-history/" + name
+                    or name in records):
+                raise ValueError("HISTORICAL_ANALYSIS_BINDING_CHANGED")
+            records[name] = source
+        return records
+
+    def _verify_history(self, *, allow_unbound: bool = False) -> None:
+        bindings = self._history_sources()
+        for name, source in bindings.items():
+            path = self.home / "analysis-history" / name
+            if not path.is_file() or path.read_bytes() != self.read_object(source):
+                raise ValueError("HISTORICAL_ANALYSIS_BINDING_CHANGED")
+        for path in (self.home / "analysis-history").glob("*.json"):
+            prior = strict_loads(path.read_text(encoding="utf-8"))
+            digest = prior.pop("analysis_digest", None)
+            if digest != path.stem or sha256_json(prior) != digest:
+                raise ValueError("HISTORICAL_ANALYSIS_BINDING_CHANGED")
+            if path.name not in bindings and not allow_unbound:
+                raise ValueError("HISTORICAL_ANALYSIS_INVENTORY_UNBOUND")
+
+    def _preserve_history(self, path: Path, data: bytes, *, origin: str) -> None:
+        prior = strict_loads(data.decode("utf-8"))
+        digest = prior.pop("analysis_digest", None)
+        if digest != path.stem or sha256_json(prior) != digest:
+            raise ValueError("HISTORICAL_ANALYSIS_BINDING_CHANGED")
+        source = self.store.source_by_id(prior["source_id"])
+        if prior["parent_digest"] != source["digest"]:
+            raise ValueError("HISTORICAL_ANALYSIS_BINDING_CHANGED")
+        with self.store.write_lock():
+            known = self._history_sources().get(path.name)
+            if known and data != self.read_object(known):
+                raise ValueError("HISTORICAL_ANALYSIS_BINDING_CHANGED")
+            if path.exists() and path.read_bytes() != data:
+                raise ValueError("HISTORICAL_ANALYSIS_BINDING_CHANGED")
+            if not path.exists():
+                atomic_write(path, data)
+            if known is None:
+                record, _ = self.store._record_source(
+                    "workbench/analysis-history/" + path.name, data, ["workbench-history"],
+                    {"archive_name": path.name, "archived_source_id": source["source_id"],
+                     "analysis_digest": digest, "binding_origin": origin,
+                     "claim_ceiling": "BYTES_OBSERVED_AT_BINDING_TIME"})
+                self.store._set_status_unlocked(record["source_id"], "historical",
+                    note="Exact archived analysis bytes; not an active research input")
+
     def index(self, paths: list[str | Path], *, limit: int = 500, model: str | None = None) -> dict:
         self.store.require()
         if not 1 <= limit <= 10000:
@@ -95,7 +148,8 @@ class Workbench:
                         break  # finite traversal; omitted tail is not enumerated or claimed complete
                     continue
                 visited += 1
-                data = file.read_bytes()
+                with file.open("rb") as source_file:
+                    data = source_file.read(MAX_BYTES + 1)
                 if len(data) > MAX_BYTES:
                     held.append({"locator": locator, "reason": "MAX_BYTES_AFTER_READ"})
                     continue
@@ -109,9 +163,13 @@ class Workbench:
 
     def compile_sources(self, *, model: str | None = None) -> dict:
         self.store.require()
+        # Never repair a missing/changed bound archive by silently rebinding it.
+        self._verify_history(allow_unbound=True)
+        for path in sorted((self.home / "analysis-history").glob("*.json")):
+            self._preserve_history(path, path.read_bytes(), origin="LEGACY_SNAPSHOT_AT_UPGRADE")
         count, failures = 0, []
         for source in self.store.sources():
-            if "workbench-result" in source.get("tags", []):
+            if {"workbench-result", "workbench-history"}.intersection(source.get("tags", [])):
                 continue
             data = self.read_object(source)
             path = self.home / "analyses" / (source["source_id"] + ".json")
@@ -127,7 +185,7 @@ class Workbench:
                     continue
             try:
                 result = extract(source["locator"], data)
-            except (ValueError, SyntaxError, OSError, RuntimeError) as error:
+            except (ValueError, SyntaxError, OSError, RuntimeError, zipfile.BadZipFile) as error:
                 result = {"contract": "nova.adapter-result.v1", "adapter_version": "1.0.0",
                           "adapter": "FAILED", "parent_digest": source["digest"], "text": "", "graphs": [],
                           "facts": {}, "coverage": {"input_bytes": len(data)}, "gaps": [type(error).__name__]}
@@ -144,10 +202,7 @@ class Workbench:
                 # Cache upgrades preserve the exact previous derivation, including model bindings.
                 historical = self.home / "analysis-history" / (cached["analysis_digest"] + ".json")
                 previous_bytes = path.read_bytes()
-                if historical.exists() and historical.read_bytes() != previous_bytes:
-                    raise ValueError("HISTORICAL_ANALYSIS_BYTES_CHANGED")
-                if not historical.exists():
-                    atomic_write(historical, previous_bytes)
+                self._preserve_history(historical, previous_bytes, origin="CACHE_UPGRADE")
                 old_compilation = cached["analysis"].get("model_compilation")
                 if model is None and old_compilation and cached["analysis"].get("text") == result.get("text"):
                     result["model_compilation"] = old_compilation
@@ -161,7 +216,7 @@ class Workbench:
     def analyses(self) -> list[dict]:
         rows = []
         for source in self.store.sources():
-            if "workbench-result" in source.get("tags", []):
+            if {"workbench-result", "workbench-history"}.intersection(source.get("tags", [])):
                 continue
             path = self.home / "analyses" / (source["source_id"] + ".json")
             if not path.exists():
@@ -228,6 +283,8 @@ class Workbench:
             raise ValueError("PURE_BUILD_REQUIRES_BUILD_MODE_AND_LOCAL_MODEL")
         if pattern is not None:
             validate_graph(pattern)
+            if len(pattern["nodes"]) > 8:
+                raise ValueError("PATTERN_NODE_LIMIT_8")
         verification = self.store.verify()
         if not verification["ok"]:
             raise RuntimeError("INVALID_WORKSPACE")
@@ -256,9 +313,14 @@ class Workbench:
                 try:
                     task_graph = compile_concepts(query, model=model, task="Extract only the requested structural query pattern.")
                     result["task_interpretation"] = {**task_graph, "input_kind": "USER_TASK_NOT_OBSERVATION"}
-                    pattern = task_graph.get("graph")
+                    proposed_pattern = task_graph.get("graph")
+                    validate_graph(proposed_pattern)
+                    if len(proposed_pattern["nodes"]) > 8:
+                        raise ValueError("PATTERN_NODE_LIMIT_8")
+                    pattern = proposed_pattern
                 except (ValueError, KeyError, OSError, RuntimeError) as error:
-                    result["coverage"]["task_interpretation"] = {"state": "OPEN", "reason": type(error).__name__}
+                    result["coverage"]["task_interpretation"] = {
+                        "state": "OPEN", "reason": type(error).__name__, "detail": str(error)}
             selected = [h for h in hits if h["usable_as_current"]][:3]
             text = "\n\n".join(h["excerpt"] for h in selected)
             if not text:
@@ -417,11 +479,7 @@ class Workbench:
         base = self.store.verify()
         try:
             rows = self.analyses(); results = self.prior_results()
-            for path in (self.home / "analysis-history").glob("*.json"):
-                prior = strict_loads(path.read_text(encoding="utf-8"))
-                digest = prior.pop("analysis_digest", None)
-                if digest != path.stem or sha256_json(prior) != digest:
-                    raise ValueError("HISTORICAL_ANALYSIS_BINDING_CHANGED")
+            self._verify_history()
             sources = {s["source_id"]: s for s in self.store.sources()}
             for result in results:
                 if result.get("contract") != CONTRACT:
@@ -446,6 +504,10 @@ class Workbench:
                     target = (self.store.root / build["directory"]).resolve()
                     if not target.is_relative_to(self.home.resolve()):
                         raise ValueError("BUILD_PATH_OUTSIDE_WORKBENCH")
+                    manifest = {k: v for k, v in build.items() if k not in {"directory", "viewer"}}
+                    expected_manifest = (canonical_json(manifest) + "\n").encode("utf-8")
+                    if (target / "BUILD_MANIFEST.json").read_bytes() != expected_manifest:
+                        raise ValueError("BUILD_MANIFEST_CHANGED")
                     for item in build["files"]:
                         file = (target / item["path"]).resolve()
                         if not file.is_relative_to(target):
