@@ -22,7 +22,8 @@ class IntegrityRegressions(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        self.root = Path(self.tmp.name)
+        # Match NovaStore's resolved paths, including Windows short temp names.
+        self.root = Path(self.tmp.name).resolve()
         self.engine = NovaEngine(self.root)
         self.engine.init("regression")
 
