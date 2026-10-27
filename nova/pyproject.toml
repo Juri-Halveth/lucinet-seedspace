@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "halveth-nova"
-version = "1.2.0"
+version = "1.2.1"
 description = "Provenance-preserving research continuity runtime for HALVETH/LUCINET"
 readme = "README.md"
 requires-python = ">=3.11"

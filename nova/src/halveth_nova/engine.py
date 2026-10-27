@@ -85,6 +85,10 @@ class NovaEngine:
 
     def resume(self) -> dict[str, Any] | None:
         self.store.require()
+        with self.store.write_lock():
+            return self._resume_unlocked()
+
+    def _resume_unlocked(self) -> dict[str, Any] | None:
         verification = self.store.verify()
         if not verification["ok"]:
             raise RuntimeError("cannot resume invalid workspace: " + "; ".join(verification["errors"]))
