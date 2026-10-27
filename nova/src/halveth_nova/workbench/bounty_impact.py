@@ -40,7 +40,8 @@ def _root_signature(root: dict) -> str | None:
     return sha256_json({key: root[key] for key in ROOT_FIELDS})
 
 
-def assess(spec: dict) -> dict:
+def assess(spec: dict, *, verified_evidence: set[str] | None = None) -> dict:
+    verified_evidence = set(verified_evidence or ())
     top = {"contract", "program", "finding", "proof", "root_cause", "known_patterns", "evidence_refs"}
     if not isinstance(spec, dict) or set(spec) != top or spec.get("contract") != CONTRACT:
         raise ValueError("BOUNTY_SPEC_CONTRACT")
@@ -118,13 +119,13 @@ def assess(spec: dict) -> dict:
             raise ValueError("BOUNTY_REFERENCE_DIGEST")
         if ref["supports"] not in EVIDENCE_FIELDS:
             raise ValueError("BOUNTY_REFERENCE_SUPPORTS")
-        normalized_refs.append({**ref, "state": "DECLARED_NOT_VERIFIED"})
+        normalized_refs.append({**ref, "state": "BOUND_TO_NOVA_SOURCE" if ref["id"] in verified_evidence else "DECLARED_NOT_VERIFIED"})
 
     root_sig = _root_signature(root)
     exact_matches = [row["id"] for row in normalized_patterns if root_sig and row["root_cause_signature"] == root_sig]
 
     scope_bound = (
-        finding["scope_state"] in {"DECLARED_IN_SCOPE", "CONFIRMED_IN_SCOPE"}
+        finding["scope_state"] == "CONFIRMED_IN_SCOPE"
         and _asset_matches(finding["asset"], program["authorized_asset"])
     )
     safe_environment = proof["environment"] in SAFE_ENVIRONMENTS
@@ -137,7 +138,7 @@ def assess(spec: dict) -> dict:
     )
     root_bound = root_sig is not None
     remediation_control = proof["remediation_control"] != "UNKNOWN"
-    supports = {row["supports"] for row in normalized_refs}
+    supports = {row["supports"] for row in normalized_refs if row["state"] == "BOUND_TO_NOVA_SOURCE"}
     evidence_bound = {"policy", "scope", "reproduction", "impact", "root_cause"}.issubset(supports)
 
     gates = {
