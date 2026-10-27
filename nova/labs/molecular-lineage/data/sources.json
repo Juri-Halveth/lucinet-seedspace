@@ -1,0 +1,516 @@
+{
+  "schema": "molecular-sources.v1",
+  "species": {
+    "dmt": {
+      "id": "dmt",
+      "cid": 6089,
+      "name": "DMT",
+      "formula": "C12H16N2",
+      "atoms": [
+        {
+          "aid": 1,
+          "element": "N",
+          "x": 6.2781,
+          "y": 1.7809
+        },
+        {
+          "aid": 2,
+          "element": "N",
+          "x": 4.6783,
+          "y": -1.9359
+        },
+        {
+          "aid": 3,
+          "element": "C",
+          "x": 4.9889,
+          "y": 0.6241
+        },
+        {
+          "aid": 4,
+          "element": "C",
+          "x": 4.6783,
+          "y": -0.3264
+        },
+        {
+          "aid": 5,
+          "element": "C",
+          "x": 5.9674,
+          "y": 0.8304
+        },
+        {
+          "aid": 6,
+          "element": "C",
+          "x": 3.7321,
+          "y": -0.6311
+        },
+        {
+          "aid": 7,
+          "element": "C",
+          "x": 3.7321,
+          "y": -1.6311
+        },
+        {
+          "aid": 8,
+          "element": "C",
+          "x": 5.2619,
+          "y": -1.1311
+        },
+        {
+          "aid": 9,
+          "element": "C",
+          "x": 2.866,
+          "y": -0.1311
+        },
+        {
+          "aid": 10,
+          "element": "C",
+          "x": 2.866,
+          "y": -2.1311
+        },
+        {
+          "aid": 11,
+          "element": "C",
+          "x": 7.2566,
+          "y": 1.9871
+        },
+        {
+          "aid": 12,
+          "element": "C",
+          "x": 5.6103,
+          "y": 2.5252
+        },
+        {
+          "aid": 13,
+          "element": "C",
+          "x": 2,
+          "y": -0.6311
+        },
+        {
+          "aid": 14,
+          "element": "C",
+          "x": 2,
+          "y": -1.6311
+        },
+        {
+          "aid": 15,
+          "element": "H",
+          "x": 4.9684,
+          "y": 1.2438
+        },
+        {
+          "aid": 16,
+          "element": "H",
+          "x": 4.3751,
+          "y": 0.7115
+        },
+        {
+          "aid": 17,
+          "element": "H",
+          "x": 5.988,
+          "y": 0.2107
+        },
+        {
+          "aid": 18,
+          "element": "H",
+          "x": 6.5813,
+          "y": 0.743
+        },
+        {
+          "aid": 19,
+          "element": "H",
+          "x": 5.8819,
+          "y": -1.1311
+        },
+        {
+          "aid": 20,
+          "element": "H",
+          "x": 4.8709,
+          "y": -2.5252
+        },
+        {
+          "aid": 21,
+          "element": "H",
+          "x": 2.866,
+          "y": 0.4889
+        },
+        {
+          "aid": 22,
+          "element": "H",
+          "x": 2.866,
+          "y": -2.7511
+        },
+        {
+          "aid": 23,
+          "element": "H",
+          "x": 7.3845,
+          "y": 1.3804
+        },
+        {
+          "aid": 24,
+          "element": "H",
+          "x": 7.8633,
+          "y": 2.115
+        },
+        {
+          "aid": 25,
+          "element": "H",
+          "x": 7.1288,
+          "y": 2.5938
+        },
+        {
+          "aid": 26,
+          "element": "H",
+          "x": 6.0717,
+          "y": 2.9392
+        },
+        {
+          "aid": 27,
+          "element": "H",
+          "x": 5.1962,
+          "y": 2.9866
+        },
+        {
+          "aid": 28,
+          "element": "H",
+          "x": 5.1488,
+          "y": 2.1111
+        },
+        {
+          "aid": 29,
+          "element": "H",
+          "x": 1.4631,
+          "y": -0.3211
+        },
+        {
+          "aid": 30,
+          "element": "H",
+          "x": 1.4631,
+          "y": -1.9411
+        }
+      ],
+      "bonds": [
+        {
+          "a": 1,
+          "b": 5,
+          "order": 1
+        },
+        {
+          "a": 1,
+          "b": 11,
+          "order": 1
+        },
+        {
+          "a": 1,
+          "b": 12,
+          "order": 1
+        },
+        {
+          "a": 2,
+          "b": 7,
+          "order": 1
+        },
+        {
+          "a": 2,
+          "b": 8,
+          "order": 1
+        },
+        {
+          "a": 2,
+          "b": 20,
+          "order": 1
+        },
+        {
+          "a": 3,
+          "b": 4,
+          "order": 1
+        },
+        {
+          "a": 3,
+          "b": 5,
+          "order": 1
+        },
+        {
+          "a": 3,
+          "b": 15,
+          "order": 1
+        },
+        {
+          "a": 3,
+          "b": 16,
+          "order": 1
+        },
+        {
+          "a": 4,
+          "b": 6,
+          "order": 1
+        },
+        {
+          "a": 4,
+          "b": 8,
+          "order": 2
+        },
+        {
+          "a": 5,
+          "b": 17,
+          "order": 1
+        },
+        {
+          "a": 5,
+          "b": 18,
+          "order": 1
+        },
+        {
+          "a": 6,
+          "b": 7,
+          "order": 1
+        },
+        {
+          "a": 6,
+          "b": 9,
+          "order": 2
+        },
+        {
+          "a": 7,
+          "b": 10,
+          "order": 2
+        },
+        {
+          "a": 8,
+          "b": 19,
+          "order": 1
+        },
+        {
+          "a": 9,
+          "b": 13,
+          "order": 1
+        },
+        {
+          "a": 9,
+          "b": 21,
+          "order": 1
+        },
+        {
+          "a": 10,
+          "b": 14,
+          "order": 1
+        },
+        {
+          "a": 10,
+          "b": 22,
+          "order": 1
+        },
+        {
+          "a": 11,
+          "b": 23,
+          "order": 1
+        },
+        {
+          "a": 11,
+          "b": 24,
+          "order": 1
+        },
+        {
+          "a": 11,
+          "b": 25,
+          "order": 1
+        },
+        {
+          "a": 12,
+          "b": 26,
+          "order": 1
+        },
+        {
+          "a": 12,
+          "b": 27,
+          "order": 1
+        },
+        {
+          "a": 12,
+          "b": 28,
+          "order": 1
+        },
+        {
+          "a": 13,
+          "b": 14,
+          "order": 2
+        },
+        {
+          "a": 13,
+          "b": 29,
+          "order": 1
+        },
+        {
+          "a": 14,
+          "b": 30,
+          "order": 1
+        }
+      ]
+    },
+    "peroxide": {
+      "id": "peroxide",
+      "cid": 784,
+      "name": "Wasserstoffperoxid",
+      "formula": "H2O2",
+      "atoms": [
+        {
+          "aid": 1,
+          "element": "O",
+          "x": 2.5369,
+          "y": -0.25
+        },
+        {
+          "aid": 2,
+          "element": "O",
+          "x": 3.403,
+          "y": 0.25
+        },
+        {
+          "aid": 3,
+          "element": "H",
+          "x": 2,
+          "y": 0.06
+        },
+        {
+          "aid": 4,
+          "element": "H",
+          "x": 3.9399,
+          "y": -0.06
+        }
+      ],
+      "bonds": [
+        {
+          "a": 1,
+          "b": 2,
+          "order": 1
+        },
+        {
+          "a": 1,
+          "b": 3,
+          "order": 1
+        },
+        {
+          "a": 2,
+          "b": 4,
+          "order": 1
+        }
+      ]
+    },
+    "water": {
+      "id": "water",
+      "cid": 962,
+      "name": "Wasser",
+      "formula": "H2O",
+      "atoms": [
+        {
+          "aid": 1,
+          "element": "O",
+          "x": 2.5369,
+          "y": -0.155
+        },
+        {
+          "aid": 2,
+          "element": "H",
+          "x": 3.0739,
+          "y": 0.155
+        },
+        {
+          "aid": 3,
+          "element": "H",
+          "x": 2,
+          "y": 0.155
+        }
+      ],
+      "bonds": [
+        {
+          "a": 1,
+          "b": 2,
+          "order": 1
+        },
+        {
+          "a": 1,
+          "b": 3,
+          "order": 1
+        }
+      ]
+    },
+    "oxygen": {
+      "id": "oxygen",
+      "cid": 977,
+      "name": "Sauerstoff",
+      "formula": "O2",
+      "atoms": [
+        {
+          "aid": 1,
+          "element": "O",
+          "x": 2,
+          "y": 0
+        },
+        {
+          "aid": 2,
+          "element": "O",
+          "x": 3,
+          "y": 0
+        }
+      ],
+      "bonds": [
+        {
+          "a": 1,
+          "b": 2,
+          "order": 2
+        }
+      ]
+    }
+  },
+  "receipts": [
+    {
+      "id": "pubchem-6089",
+      "url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/6089/JSON?record_type=2d",
+      "file": "pubchem-6089.json",
+      "startedAt": "2026-10-27T10:41:46.985006+00:00",
+      "receivedAt": "2026-10-27T10:41:47.404653+00:00",
+      "bytes": 14243,
+      "sha256": "dceafa7654032d709cabdb141f96397196089f34a18ebe8c197213e271232bd3",
+      "scope": "PubChem 2D connectivity for this CID; not a measured trajectory"
+    },
+    {
+      "id": "pubchem-784",
+      "url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/784/JSON?record_type=2d",
+      "file": "pubchem-784.json",
+      "startedAt": "2026-10-27T10:41:47.655033+00:00",
+      "receivedAt": "2026-10-27T10:41:47.923109+00:00",
+      "bytes": 9676,
+      "sha256": "134869de7bc60c8cec07e0ceafe863f1fd0dce3c28b15af5cc95c9a80a73930b",
+      "scope": "PubChem 2D connectivity for this CID; not a measured trajectory"
+    },
+    {
+      "id": "pubchem-962",
+      "url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/962/JSON?record_type=2d",
+      "file": "pubchem-962.json",
+      "startedAt": "2026-10-27T10:41:48.173561+00:00",
+      "receivedAt": "2026-10-27T10:41:48.503038+00:00",
+      "bytes": 9476,
+      "sha256": "43eb35b535506885f9cb735d2bac9ed7c74d82828fa38dfe77584c713a995eca",
+      "scope": "PubChem 2D connectivity for this CID; not a measured trajectory"
+    },
+    {
+      "id": "pubchem-977",
+      "url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/977/JSON?record_type=2d",
+      "file": "pubchem-977.json",
+      "startedAt": "2026-10-27T10:41:48.753242+00:00",
+      "receivedAt": "2026-10-27T10:41:49.053647+00:00",
+      "bytes": 9398,
+      "sha256": "863709c4f481889f3cf32bcc5fc62f976a92816c7f73917783915a87ff293d5b",
+      "scope": "PubChem 2D connectivity for this CID; not a measured trajectory"
+    }
+  ],
+  "reaction": {
+    "id": "rhea-20309",
+    "url": "https://www.rhea-db.org/rhea/20309",
+    "secondSource": "https://iubmb.qmul.ac.uk/enzyme/EC1/11/1/6.html",
+    "equation": "2 H2O2 = 2 H2O + O2",
+    "enzymeClass": "EC 1.11.1.6",
+    "sourceCheckedAt": "2026-10-27",
+    "atomMapping": "ANALYST_SELECTED_NOT_EXPERIMENTALLY_TRACED",
+    "kinetics": "UNBOUND; model steps and poses are illustrative"
+  }
+}

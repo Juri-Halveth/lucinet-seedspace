@@ -1,0 +1,27 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {createRun,stateAt,auditRun,checkpoint,validateCheckpoint,canonical,validateConfig} from './engine.mjs';
+const sources=JSON.parse(readFileSync(new URL('./data/sources.json',import.meta.url),'utf8'));
+const config=(scenario='journey',gate='open',seed=127)=>({scenario,gate,seed});
+test('raw public chemistry sources match bound lengths, hashes, element counts and bonds',()=>{
+  const counts={dmt:{C:12,H:16,N:2},peroxide:{H:2,O:2},water:{H:2,O:1},oxygen:{O:2}};
+  for(const ref of sources.receipts){const raw=readFileSync(new URL('./data/'+ref.file,import.meta.url));assert.equal(raw.length,ref.bytes);assert.equal(createHash('sha256').update(raw).digest('hex'),ref.sha256);}
+  for(const [key,s] of Object.entries(sources.species)){const n={};for(const a of s.atoms)n[a.element]=(n[a.element]??0)+1;assert.deepEqual(n,counts[key]);const ids=new Set(s.atoms.map(a=>a.aid));for(const b of s.bonds)assert(ids.has(b.a)&&ids.has(b.b));}
+});
+test('same recipe is deterministic, but separate runs have separate identities',()=>{const a=createRun(config(),sources),b=createRun(config(),sources);assert.notEqual(a.runId,b.runId);assert.equal(canonical(a),canonical(createRun(config(),sources,a)));});
+test('full bounded sweep preserves every atom and one owner at every model step',()=>{
+  for(const scenario of ['journey','catalase'])for(const gate of ['open','closed'])for(const seed of [0,1,5,127,999999]){
+    const run=createRun(config(scenario,gate,seed),sources);assert(auditRun(run,sources).ok);
+    for(let t=0;t<=60;t++){const active=stateAt(run,t).active,ids=active.flatMap(e=>e.atomIds);assert.equal(ids.length,run.atoms.length);assert.equal(new Set(ids).size,ids.length);}
+  }
+});
+test('changing only the gate distinguishes a reachable from a blocked endpoint',()=>{for(const scenario of ['journey','catalase']){const a=createRun(config(scenario),sources),b=createRun(config(scenario,'closed'),sources);assert(stateAt(a,60).active.every(e=>e.position.x>423));assert(stateAt(b,60).active.every(e=>e.position.x<407));assert.equal(a.atoms.length,b.atoms.length);}});
+test('reaction consumes two instances, creates three, and preserves all eight IDs exactly',()=>{const r=createRun(config('catalase'),sources),before=stateAt(r,31),after=stateAt(r,32);assert.equal(before.active.length,2);assert.equal(after.active.length,3);assert.deepEqual(before.active.flatMap(e=>e.atomIds).sort(),after.active.flatMap(e=>e.atomIds).sort());assert.equal(r.entities.filter(e=>e.retired===32).length,2);assert.equal(after.active.filter(e=>e.speciesId==='water').length,2);});
+test('transport, binding and release keep instance identity distinct from species identity',()=>{const r=createRun(config(),sources);assert.equal(r.entities.length,3);assert.equal(new Set(r.entities.map(e=>e.id)).size,3);assert(r.entities.every(e=>e.speciesId==='dmt'&&e.atomIds.length===30));assert.equal(stateAt(r,39).active[0].state,'BIND');assert.equal(stateAt(r,60).active[0].state,'RELEASE');});
+test('atom mapping has full directed parent and product addresses with exact shared atoms',async()=>{const r=createRun(config('catalase'),sources),p=await checkpoint(r,32,sources);assert.equal(p.relations.length,6);for(const rel of p.relations){assert(rel.atomIds.length);assert.equal(rel.left.scope,r.runId);assert.equal(rel.right.scope,r.runId);assert.match(rel.left.digest,/^[0-9a-f]{64}$/);assert.notEqual(rel.left.id,rel.right.id);assert.equal(rel.authorityEffect,'NONE');}assert.equal((await validateCheckpoint(p,sources)).ok,true);});
+test('tampered atoms, events, references, digests, unknown fields and snapshots are rejected',async()=>{const p=await checkpoint(createRun(config('catalase'),sources),32,sources);const changes=[x=>x.run.atoms[0].element='N',x=>x.run.events[0].type='EXECUTE',x=>x.relations[0].left.id='other',x=>x.packetDigest='0'.repeat(64),x=>x.unexpected=true,x=>x.snapshot.active[0].position.x=999];for(const change of changes){const bad=structuredClone(p);change(bad);await assert.rejects(()=>validateCheckpoint(bad,sources));}});
+test('invalid explicit inputs fail without clamping, normalizing or silent defaults',()=>{for(const bad of [config('other'),config('journey','other'),config('journey','open',-1),{...config(),extra:true}])assert.throws(()=>validateConfig(bad));const r=createRun(config(),sources);for(const t of [-1,61,.5,NaN])assert.throws(()=>stateAt(r,t));});
+test('all events bind model clock separately from source acquisition and recorded time',()=>{const r=createRun(config(),sources);assert.equal(r.clock.calibratedToSeconds,false);for(const e of r.events){assert.equal(e.time.clockId,r.clock.id);assert.equal(e.time.unit,'MODEL_STEP');assert.equal(e.recordedAt,r.recordedAt);assert.equal(e.evidence,'DECLARED_MODEL_EVENT');}});
+test('selected instance and atom survive a checkpoint while legacy packets remain valid',async()=>{const r=createRun(config(),sources),e=r.entities[1],view={selectedEntityId:e.id,selectedAtomId:e.atomIds[5]};const p=await checkpoint(r,20,sources,view);assert.deepEqual(p.view,view);assert((await validateCheckpoint(p,sources)).ok);assert((await validateCheckpoint(await checkpoint(r,20,sources),sources)).ok);await assert.rejects(()=>checkpoint(r,20,sources,{...view,selectedAtomId:r.entities[0].atomIds[0]}));});
