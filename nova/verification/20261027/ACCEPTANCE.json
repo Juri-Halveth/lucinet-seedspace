@@ -13,7 +13,6 @@
     "generated_function_state": "TESTED_CANDIDATE",
     "withheld_cases_passed": 4,
     "generation_attempts_in_acceptance": 3,
-    "independent_new_application_output": 2,
     "recovered_generated_sources": 2,
     "ledger_verification_after_reuse_and_value_input": {
       "ok": true,
@@ -47,7 +46,8 @@
       "commit": "539990df83ebd690f95528ea9c212d3b9c1eaa25",
       "files_read": 3,
       "eligible_files_omitted": 28
-    }
+    },
+    "new_application_output": 2
   },
   "scope": "Owned local synthetic fixtures and explicitly bounded GitHub GET input. No human trial, general software executor, hardware connection or market valuation.",
   "development_runs_preserved": [
