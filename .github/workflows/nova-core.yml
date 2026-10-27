@@ -1,0 +1,41 @@
+name: NOVA core
+
+on:
+  push:
+    paths:
+      - 'nova/**'
+      - '.github/workflows/nova-core.yml'
+  pull_request:
+    paths:
+      - 'nova/**'
+      - '.github/workflows/nova-core.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12', '3.13']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Compile
+        run: python -m compileall -q nova/src nova/nova.py
+      - name: Unit tests
+        env:
+          PYTHONPATH: nova/src
+        run: python -m unittest discover -s nova/tests -v
+      - name: Zero-install CLI smoke test
+        run: |
+          tmp="$(mktemp -d)"
+          python nova/nova.py --workspace "$tmp" init --name ci-smoke
+          printf 'source provenance unknown\n' > "$tmp/source.txt"
+          python nova/nova.py --workspace "$tmp" ingest "$tmp/source.txt" --tag smoke
+          python nova/nova.py --workspace "$tmp" run "provenance" --mode FLOW --next-seed "continue"
+          python nova/nova.py --workspace "$tmp" verify
+          python nova/nova.py --workspace "$tmp" export "$tmp/export.zip"
