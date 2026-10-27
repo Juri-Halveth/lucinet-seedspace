@@ -1,6 +1,6 @@
 # NOVA 2.0 · Research Workbench
 
-Read a bounded source collection, recover earlier work, compare declared structures across names, run a countertest, and build a reusable program with a receipt. The continuity core introduced in 1.2 remains available with its existing commands.
+Read a bounded source collection, recover earlier work, compare declared structures across names, run a countertest, and build a reusable program with a receipt. The continuity core remains available with its existing commands, including the published 1.2.1 integrity and locking fixes.
 
 ```bash
 # Python 3.11+, no package installation for the base workbench

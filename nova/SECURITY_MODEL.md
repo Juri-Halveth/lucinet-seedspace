@@ -45,3 +45,9 @@ source authenticity and a complete universe are separate questions.
 Current base: `539990df83ebd690f95528ea9c212d3b9c1eaa25`, preserved in Git.
 Development occurs in a separate worktree and branch. Failed builds retain their
 candidate and evidence; receipt success and deployment are separate states.
+
+Before delivery the candidate also integrates published Core 1.2.1 commit
+`274cbdef652021ccac6ab4297614e95057cf89b9`. Its stable OS-lock protocol, exact
+resume binding, source restoration and locked atomic exports are retained.
+Finish old 1.2.0 writers before using the 1.2.1/2.0 locking protocol. The combined
+local suite has 78 tests; the recorded synthetic workspace verifies after reuse.

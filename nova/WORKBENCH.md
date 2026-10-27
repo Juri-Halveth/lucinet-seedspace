@@ -203,3 +203,9 @@ product question is measured usability and task benefit on a declared real
 workflow. Synthetic fixture correctness, a generated function and source
 integrity are concrete delivered capabilities; user benefit, market valuation
 and general autonomous software engineering remain separate measurement work.
+
+The dated [acceptance snapshot](verification/20261027/ACCEPTANCE.json) binds the
+actual generated candidate, attempts, withheld test result and finite coverage.
+The [media snapshot](verification/20261027/MEDIA_SUMMARY.json) includes the
+synthetic speech reference and inferred text, so recognition errors remain visible.
+Development failures are retained alongside the successful acceptance run.

@@ -1,0 +1,68 @@
+{
+  "contract": "nova.media-acceptance-snapshot.v1",
+  "fixture_kind": "PUBLIC_SYNTHETIC",
+  "video_frame_seconds": [
+    0.0,
+    1.0,
+    2.0
+  ],
+  "video_coverage": {
+    "decoded_frames": 5,
+    "sampled_frames": 3,
+    "frame_limit": 3,
+    "seconds_limit": 10,
+    "decode_frame_limit": 5000,
+    "operator": "first frame at each integer presentation second, first video stream",
+    "time_basis": "media presentation clock; no UTC or inter-camera calibration"
+  },
+  "speech_ground_truth": "One source can have many copies. Count the distinct origins, not the names.",
+  "speech_inferred": " One source can have many copies.\n Counts are distinct origins, not the names.",
+  "speech_coverage": {
+    "seconds_limit": 30,
+    "decoded_frames": 74,
+    "source_stream": {
+      "index": 0,
+      "time_base": "1/22050"
+    },
+    "samples": 109481,
+    "sample_rate": 16000,
+    "channels": "resampled mono",
+    "sample_format": "float32",
+    "decoder": "PyAV",
+    "decoder_version": "19.0.2",
+    "sample_digest": "4e7aa22816a31e55dbeda48cb5f5961a103903203a684cbe17b42aba1b942bae",
+    "time_basis": "inferred segments relative to first decoded/resampled audio sample; no UTC"
+  },
+  "vision": {
+    "contract": "nova.vision-derivation.v1",
+    "state": "MODEL_INFERRED_FROM_PIXELS",
+    "image_digest": "231d5aa44ace4c961fe835dd678be521bbdc8ec21d57346c752e20a3ab8eb10c",
+    "response_digest": "68198bbdd4434fbaaf6edf5fab04ab57634a7341f829908f0798e86967b78b03",
+    "model_profile": {
+      "name": "qwen3-vl:2b",
+      "digest": "0635d9d857d497aeadba3d7d27485746c50554446f9f6ec01ef39788221adbe8",
+      "bytes": 1889519687,
+      "capabilities": [
+        "completion",
+        "vision",
+        "tools",
+        "thinking"
+      ],
+      "binding": "LOCAL_SERVICE_DECLARATION"
+    },
+    "result": {
+      "observations": [
+        "red square",
+        "blue circle",
+        "white background"
+      ],
+      "text": [
+        "NOVA TEST 42"
+      ],
+      "gaps": []
+    },
+    "authority": "NONE",
+    "user_purpose": "SEPARATE_SOURCE_REQUIRED"
+  },
+  "scope": "Single synthetic video, drawn image and synthesized English sentence; no general accuracy estimate or user-media interpretation."
+}
