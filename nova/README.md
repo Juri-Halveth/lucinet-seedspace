@@ -1,12 +1,14 @@
-# NOVA 2.1.0 · Research Workbench
+# NOVA 2.1.1 · Research Workbench
 
 Read a bounded source collection, recover earlier work, compare declared structures across names, run a countertest, and build a reusable program with a receipt. The continuity core remains available with its existing commands, including the published 1.2.1 integrity and locking fixes.
 
 The [2.0.3 maintenance notes](MAINTENANCE_2_0_3.md) describe the combined
 workbench repairs, legacy build verification and regression coverage.
 
-NOVA 2.1.0 adds source-bound association expansion and essence comparisons
-while retaining those repairs. Start with explicit source cards, inspect each
+NOVA 2.1 adds source-bound association expansion and essence comparisons
+while retaining those repairs. Version 2.1.1 also recognizes explicitly
+validated essence inputs by their bound contract/tag rather than requiring a
+particular filename suffix. Start with explicit source cards, inspect each
 quoted reading and its differences, and preserve the next unanswered question:
 
 ```bash
