@@ -153,7 +153,7 @@ class IntegrityRegressions(unittest.TestCase):
         anchor = workspace / ".nova"
         if os.name == "nt":
             result = subprocess.run(["cmd.exe", "/d", "/c", "mklink", "/J", str(anchor), str(backing)],
-                                    capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                                    capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
             self.assertEqual(result.returncode, 0, result.stderr)
         else:
             anchor.symlink_to(backing, target_is_directory=True)
