@@ -37,8 +37,10 @@ test('download name and bytes retain the clicked state across awaited hashes', a
       createElementNS: (_, tag) => new Element(tag), addEventListener() {},
     };
     globalThis.requestAnimationFrame = () => {};
+    const history = Array.from({length: 21}, (_, i) => ({sequence: 21-i, step: i,
+      packetDigest: String(i).padStart(64, '0'), sourceId: 'fixture-source-' + i}));
     globalThis.fetch = async url => ({ok: true, json: async () => url === 'data/sources.json'
-      ? sources : {ok: true, version: '2.1.2', ledgerCount: 0, sourceCount: 0, checkpoints: []}});
+      ? sources : {ok: true, version: '2.1.2', ledgerCount: 21, sourceCount: 0, checkpoints: history}});
     URL.createObjectURL = blob => { const id = 'blob:fixture-' + blobs.size; blobs.set(id, blob); return id; };
     URL.revokeObjectURL = () => {};
     Object.defineProperty(globalThis, 'crypto', {configurable: true, value: {
@@ -48,6 +50,11 @@ test('download name and bytes retain the clicked state across awaited hashes', a
       }},
     }});
     await import('./app.mjs');
+    assert.equal(nodes.get('saved-records').children.length, 20);
+    assert.equal(nodes.get('more-records').hidden, false);
+    nodes.get('more-records').listeners.click();
+    assert.equal(nodes.get('saved-records').children.length, 21, 'oldest retained record becomes reachable');
+    assert.equal(nodes.get('more-records').hidden, true);
     for (const interleave of ['scenario', 'step']) {
       nodes.get('timeline').value = '17'; nodes.get('timeline').listeners.input();
       const selected = nodes.get('molecule').value;

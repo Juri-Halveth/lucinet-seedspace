@@ -108,6 +108,18 @@ class BridgeTests(unittest.TestCase):
         self.assertEqual(copied.status()["checkpoints"], [])
         self.assertEqual(self.file_hashes(old.store.root), before)
 
+    def test_all_twenty_one_checkpoints_stay_listed_and_oldest_reopens(self):
+        lab = module.Lab(Path(self.tmp.name) / "history-21")
+        first = None
+        for step in range(21):
+            receipt = lab.save(self.fixture(step))
+            if first is None:
+                first = receipt
+        records = lab.status()["checkpoints"]
+        self.assertEqual(len(records), 21)
+        self.assertEqual(records[-1]["packetDigest"], first["packetDigest"])
+        self.assertEqual(json.loads(lab.read_checkpoint(first["packetDigest"]))["step"], 0)
+
     def test_save_readback_verify_and_idempotent_retry(self):
         raw = self.fixture()
         code, data, _ = self.request("POST", "/api/checkpoints", raw)

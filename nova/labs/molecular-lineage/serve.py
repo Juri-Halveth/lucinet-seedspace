@@ -79,7 +79,7 @@ class Lab:
         for path in self.receipts.glob("*.json"):
             record = strict_loads(path.read_text(encoding="utf-8"))
             records.append({key: record[key] for key in ["packetDigest", "step", "sourceId", "entryHash", "sequence", "recordedAt"]})
-        return sorted(records, key=lambda r: (r["sequence"], r["packetDigest"]), reverse=True)[:20]
+        return sorted(records, key=lambda r: (r["sequence"], r["packetDigest"]), reverse=True)
 
     def read_checkpoint(self, digest):
         if not re.fullmatch(r"[0-9a-f]{64}", digest):

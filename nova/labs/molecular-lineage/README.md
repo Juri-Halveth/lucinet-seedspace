@@ -53,6 +53,8 @@ Invalid lab-history bindings stop the fork before the destination is created.
 6. Expand **Gebundene Forschungshistorie** and reopen a saved checkpoint. New
    checkpoints retain the selected instance and atom; older packets without a
    view selection remain readable.
+   **Weitere Stände anzeigen** makes earlier checkpoints available in batches
+   of twenty, up to the complete retained history within the local budget.
 
 Changing a model parameter creates a new run ID with a parent-run reference.
 The parent reference names a local UI branch, not an authenticated external
