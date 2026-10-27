@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import errno
+import hashlib
 import json
 import mimetypes
 import os
@@ -75,42 +77,58 @@ class NovaStore:
 
     @contextmanager
     def write_lock(self, timeout: float = 8.0, stale_after: float = 120.0):
+        # Keep the inode/file identity stable. Kernel locks are released on process
+        # exit, and a live owner never loses its lock merely because time passed.
+        # stale_after remains accepted for callers of the 1.2.0 API; it no longer
+        # expires a lock. All concurrent processes must use this lock protocol.
         self.nova.mkdir(parents=True, exist_ok=True)
         deadline = time.monotonic() + timeout
-        while True:
-            try:
-                fd = os.open(self.lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-                with os.fdopen(fd, "w", encoding="utf-8") as f:
-                    f.write(f"pid={os.getpid()} at={utc_now()}\n")
-                break
-            except FileExistsError:
+        with self.lock_path.open("a+b") as handle:
+            if handle.seek(0, os.SEEK_END) == 0:
+                handle.write(b"\0")
+                handle.flush()
+            if os.name == "nt":
+                import msvcrt
+                def acquire():
+                    handle.seek(0)
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                def release():
+                    handle.seek(0)
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+                def acquire():
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                def release():
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            while True:
                 try:
-                    age = time.time() - self.lock_path.stat().st_mtime
-                    if age > stale_after:
-                        self.lock_path.unlink(missing_ok=True)
-                        continue
-                except FileNotFoundError:
-                    continue
-                if time.monotonic() >= deadline:
-                    raise RuntimeError("WORKSPACE_BUSY")
-                time.sleep(0.05)
-        try:
-            yield
-        finally:
-            self.lock_path.unlink(missing_ok=True)
+                    acquire()
+                    break
+                except OSError as error:
+                    if error.errno not in {errno.EACCES, errno.EAGAIN, errno.EDEADLK}:
+                        raise
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError("WORKSPACE_BUSY") from error
+                    time.sleep(0.05)
+            try:
+                yield
+            finally:
+                release()
 
     def init(self, name: str | None = None) -> dict[str, Any]:
-        self.objects.mkdir(parents=True, exist_ok=True)
-        if self.config_path.exists():
-            return self.read_config()
-        cfg = {
-            "contract": WORKSPACE_CONTRACT,
-            "name": name or self.root.name,
-            "created_at": utc_now(),
-            "runtime": "halveth-nova",
-        }
-        atomic_write(self.config_path, (canonical_json(cfg) + "\n").encode("utf-8"))
-        return cfg
+        with self.write_lock():
+            self.objects.mkdir(parents=True, exist_ok=True)
+            if self.config_path.exists():
+                return self.read_config()
+            cfg = {
+                "contract": WORKSPACE_CONTRACT,
+                "name": name or self.root.name,
+                "created_at": utc_now(),
+                "runtime": "halveth-nova",
+            }
+            atomic_write(self.config_path, (canonical_json(cfg) + "\n").encode("utf-8"))
+            return cfg
 
     def require(self) -> None:
         if not self.config_path.is_file():
@@ -170,6 +188,14 @@ class NovaStore:
         existing = self.sources()
         for row in existing:
             if row["source_id"] == source_id:
+                statuses = self.status_map()
+                for old in existing:
+                    if (old["locator"] == locator and old["source_id"] != source_id
+                            and statuses[old["source_id"]]["status"] in {"active", "historical"}):
+                        self._set_status_unlocked(old["source_id"], "superseded",
+                                                  note=f"locator restored to {source_id}", superseded_by=source_id)
+                if statuses[source_id]["status"] == "superseded":
+                    self._set_status_unlocked(source_id, "active", note="locator restored to stored source bytes")
                 return row, False
         previous = [r for r in existing if r["locator"] == locator]
         media_type = mimetypes.guess_type(locator)[0] or "application/octet-stream"
@@ -186,6 +212,8 @@ class NovaStore:
 
     def ingest_path(self, path: Path | str, *, tags: list[str] | None = None, metadata: dict[str, Any] | None = None, max_bytes: int = 8_000_000) -> list[dict[str, Any]]:
         self.require()
+        if type(max_bytes) is not int or max_bytes < 0:
+            raise ValueError("max_bytes must be a nonnegative integer")
         p = Path(path).resolve()
         tags = list(tags or [])
         metadata = dict(metadata or {})
@@ -198,10 +226,15 @@ class NovaStore:
         results: list[dict[str, Any]] = []
         with self.write_lock():
             for f in files:
-                data = f.read_bytes()
                 locator = self._locator_for(f, p)
+                size = f.stat().st_size
+                if size > max_bytes:
+                    results.append({"locator": locator, "skipped": "MAX_BYTES", "bytes": size})
+                    continue
+                with f.open("rb") as source:
+                    data = source.read(max_bytes + 1)
                 if len(data) > max_bytes:
-                    results.append({"locator": locator, "skipped": "MAX_BYTES", "bytes": len(data)})
+                    results.append({"locator": locator, "skipped": "MAX_BYTES", "bytes": max(len(data), f.stat().st_size)})
                     continue
                 rec, created = self._record_source(locator, data, tags, metadata)
                 results.append({**rec, "created": created})
@@ -260,15 +293,22 @@ class NovaStore:
             envelope = {"contract": LEDGER_CONTRACT, "sequence": seq, "previous_hash": previous, "receipt": receipt}
             envelope["entry_hash"] = sha256_json(envelope)
             append_jsonl(self.ledger_path, envelope)
-            resume = {"contract": RESUME_CONTRACT, "sequence": seq, "entry_hash": envelope["entry_hash"], "run_id": receipt["run_id"], "next_seed": receipt.get("next_seed", ""), "updated_at": receipt["created_at"]}
+            resume = self._resume_for(envelope)
             atomic_write(self.resume_path, (canonical_json(resume) + "\n").encode("utf-8"))
             return envelope
+
+    @staticmethod
+    def _resume_for(envelope: dict[str, Any]) -> dict[str, Any]:
+        receipt = envelope["receipt"]
+        return {"contract": RESUME_CONTRACT, "sequence": envelope["sequence"],
+                "entry_hash": envelope["entry_hash"], "run_id": receipt["run_id"],
+                "next_seed": receipt.get("next_seed", ""), "updated_at": receipt["created_at"]}
 
     def read_resume(self) -> dict[str, Any] | None:
         if not self.resume_path.exists():
             return None
         value = strict_loads(self.resume_path.read_text(encoding="utf-8"))
-        if value.get("contract") != RESUME_CONTRACT:
+        if not isinstance(value, dict) or value.get("contract") != RESUME_CONTRACT:
             raise ValueError("invalid resume contract")
         return value
 
@@ -276,10 +316,15 @@ class NovaStore:
         self.require()
         errors: list[str] = []
         source_ids: set[str] = set()
+        source_map: dict[str, dict[str, Any]] = {}
         for s in self.sources():
             if s["source_id"] in source_ids:
                 errors.append(f"duplicate source_id {s['source_id']}")
             source_ids.add(s["source_id"])
+            source_map[s["source_id"]] = s
+            if not isinstance(s.get("digest"), str) or len(s["digest"]) != 64 or any(c not in "0123456789abcdef" for c in s["digest"]):
+                errors.append(f"invalid object digest {s['source_id']}")
+                continue
             obj = self.objects / s["digest"]
             if not obj.is_file():
                 errors.append(f"missing object {s['digest']}")
@@ -291,6 +336,22 @@ class NovaStore:
             self.status_map()
         except Exception as e:
             errors.append(str(e))
+        def check_evidence(evidence, context):
+            if not isinstance(evidence, list):
+                errors.append(f"{context}: invalid evidence list")
+                return
+            for sid in evidence:
+                if not isinstance(sid, str) or sid not in source_ids:
+                    errors.append(f"{context}: missing source {sid}")
+        relations = self.relations()
+        relation_ids = set()
+        for relation in relations:
+            rid = relation.get("relation_id")
+            if not isinstance(rid, str) or rid in relation_ids:
+                errors.append("invalid or duplicate relation_id")
+            else:
+                relation_ids.add(rid)
+            check_evidence(relation.get("evidence", []), f"relation {rid}")
         previous = None
         rows = self.ledger()
         for index, row in enumerate(rows, 1):
@@ -306,6 +367,40 @@ class NovaStore:
             expected = sha256_json(candidate)
             if got != expected:
                 errors.append(f"ledger {index}: entry hash mismatch")
+            receipt = row.get("receipt")
+            if not isinstance(receipt, dict):
+                errors.append(f"ledger {index}: invalid receipt")
+                previous = got
+                continue
+            inputs = receipt.get("input_sources", [])
+            if not isinstance(inputs, list):
+                errors.append(f"ledger {index}: invalid input_sources")
+                inputs = []
+            for binding in inputs:
+                if not isinstance(binding, dict):
+                    errors.append(f"ledger {index}: invalid source binding")
+                    continue
+                sid = binding.get("source_id")
+                check_evidence([sid], f"ledger {index} input")
+                source = source_map.get(sid) if isinstance(sid, str) else None
+                if source and (binding.get("digest") != source["digest"] or binding.get("locator") != source["locator"]):
+                    errors.append(f"ledger {index}: source binding mismatch {sid}")
+            claims = receipt.get("claims", [])
+            if not isinstance(claims, list):
+                errors.append(f"ledger {index}: invalid claims")
+                claims = []
+            for claim in claims:
+                if not isinstance(claim, dict):
+                    errors.append(f"ledger {index}: invalid claim")
+                else:
+                    check_evidence(claim.get("evidence", []), f"ledger {index} claim")
+            visible = receipt.get("relations_visible", [])
+            if not isinstance(visible, list):
+                errors.append(f"ledger {index}: invalid relations_visible")
+                visible = []
+            for rid in visible:
+                if not isinstance(rid, str) or rid not in relation_ids:
+                    errors.append(f"ledger {index}: missing relation {rid}")
             previous = got
         resume = self.read_resume()
         if rows:
@@ -313,34 +408,50 @@ class NovaStore:
                 errors.append("ledger exists but resume missing")
             elif resume.get("sequence") != len(rows) or resume.get("entry_hash") != rows[-1].get("entry_hash"):
                 errors.append("resume is stale")
+            else:
+                try:
+                    if canonical_json(resume) != canonical_json(self._resume_for(rows[-1])):
+                        errors.append("resume continuation does not match latest receipt")
+                except (KeyError, TypeError, ValueError):
+                    errors.append("invalid continuation receipt")
         elif resume:
             errors.append("resume exists without ledger")
-        return {"ok": not errors, "errors": errors, "source_count": len(source_ids), "relation_count": len(self.relations()), "ledger_count": len(rows), "latest_hash": previous}
+        return {"ok": not errors, "errors": errors, "source_count": len(source_ids), "relation_count": len(relations), "ledger_count": len(rows), "latest_hash": previous}
 
     def export_zip(self, target: Path | str) -> dict[str, Any]:
         import zipfile
         self.require()
-        verification = self.verify()
-        if not verification["ok"]:
-            raise RuntimeError("workspace verification failed before export: " + "; ".join(verification["errors"]))
         target = Path(target).resolve()
+        if target == self.nova or self.nova in target.parents:
+            raise ValueError("export target must be outside .nova")
         target.parent.mkdir(parents=True, exist_ok=True)
-        files = sorted(p for p in self.nova.rglob("*") if p.is_file())
-        resume = self.read_resume()
-        manifest = {"contract": "halveth.nova.export.v1", "workspace": self.read_config()["name"], "state_at": (resume or self.read_config())["updated_at" if resume else "created_at"], "files": []}
-        for p in files:
-            rel = p.relative_to(self.root).as_posix()
-            data = p.read_bytes()
-            manifest["files"].append({"path": rel, "bytes": len(data), "sha256": sha256_bytes(data)})
-        with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
-            for p in files:
-                rel = p.relative_to(self.root).as_posix()
-                info = zipfile.ZipInfo(rel, date_time=(1980, 1, 1, 0, 0, 0))
-                info.compress_type = zipfile.ZIP_DEFLATED
-                info.external_attr = 0o644 << 16
-                z.writestr(info, p.read_bytes())
-            info = zipfile.ZipInfo("NOVA_EXPORT_MANIFEST.json", date_time=(1980, 1, 1, 0, 0, 0))
-            info.compress_type = zipfile.ZIP_DEFLATED
-            info.external_attr = 0o644 << 16
-            z.writestr(info, (canonical_json(manifest) + "\n").encode("utf-8"))
-        return {"path": str(target), "sha256": sha256_bytes(target.read_bytes()), "files": len(files), "manifest": manifest}
+        with self.write_lock():
+            verification = self.verify()
+            if not verification["ok"]:
+                raise RuntimeError("workspace verification failed before export: " + "; ".join(verification["errors"]))
+            files = sorted(p for p in self.nova.rglob("*") if p.is_file() and p != self.lock_path)
+            resume = self.read_resume()
+            config = self.read_config()
+            manifest = {"contract": "halveth.nova.export.v1", "workspace": config["name"], "state_at": (resume or config)["updated_at" if resume else "created_at"], "files": []}
+            fd, temporary = tempfile.mkstemp(prefix=target.name + ".", dir=target.parent)
+            os.close(fd)
+            try:
+                with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+                    def add(name, data):
+                        info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+                        info.compress_type = zipfile.ZIP_DEFLATED
+                        info.external_attr = 0o644 << 16
+                        z.writestr(info, data)
+                    for p in files:
+                        rel = p.relative_to(self.root).as_posix()
+                        data = p.read_bytes()
+                        manifest["files"].append({"path": rel, "bytes": len(data), "sha256": sha256_bytes(data)})
+                        add(rel, data)
+                    add("NOVA_EXPORT_MANIFEST.json", (canonical_json(manifest) + "\n").encode("utf-8"))
+                with open(temporary, "rb") as archive:
+                    digest = hashlib.file_digest(archive, "sha256").hexdigest()
+                os.replace(temporary, target)
+            finally:
+                if os.path.exists(temporary):
+                    os.unlink(temporary)
+            return {"path": str(target), "sha256": digest, "files": len(files), "manifest": manifest}
