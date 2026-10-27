@@ -1,0 +1,40 @@
+{
+  "contract": "nova.value-continuation-regression.v1",
+  "recorded_at": "2026-10-27T01:14:56.279329+00:00",
+  "accepted_base": "39f151f65fc5dd8094c8baad657fa92f9f442584",
+  "candidate_version": "2.0.1",
+  "before": {
+    "query": "value measurement pilot",
+    "value_hits_found": true,
+    "value_questions_admitted": 0,
+    "selected_field": "independent_observer_identity"
+  },
+  "after": {
+    "query": "value measurement pilot",
+    "selected_field": "value_measurement_plan",
+    "question_state": "DECLARED_QUESTION_NOT_VERIFIED_BENEFIT",
+    "next_seed": {
+      "task": "value measurement pilot",
+      "suggested_mode": "DEEP",
+      "unknown_ids": [
+        "unknown_667aca93b308171a38163196",
+        "unknown_a83a29b634c58597bb0ab602",
+        "unknown_acd74250b3cf9be6838c6f62",
+        "unknown_bf6093a0c94ff499a313c966",
+        "unknown_c9cca0e90d22fa43abd22277"
+      ],
+      "selected_unknown_id": "unknown_667aca93b308171a38163196",
+      "next_action": "Provide the missing value measurement plan with its source and measurement scope.",
+      "authority_inherited": false
+    },
+    "preserved_fields": [
+      "adapter_coverage",
+      "independent_observer_identity",
+      "value_measurement_plan"
+    ],
+    "workspace_verify": true,
+    "previous_derivations_retained": 11
+  },
+  "combined_tests": 82,
+  "claim_ceiling": "Question routing, preserved derivations and bound continuation; no measured economic benefit or funding authority."
+}

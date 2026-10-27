@@ -12,7 +12,7 @@ from ..jsonutil import canonical_json, sha256_bytes, sha256_json, strict_loads
 from ..search import score_candidate
 from ..store import atomic_write, utc_now
 from . import WORKBENCH_VERSION
-from .adapters import MAX_BYTES, capabilities, extract
+from .adapters import ADAPTER_BUNDLE_VERSION, MAX_BYTES, capabilities, extract
 from .graph import addressed_relations, structural_match, unknown_key, validate_graph
 
 CONTRACT = "nova.workbench-result.v1"
@@ -115,13 +115,14 @@ class Workbench:
                 continue
             data = self.read_object(source)
             path = self.home / "analyses" / (source["source_id"] + ".json")
+            cached = None
             if path.exists():
                 cached = strict_loads(path.read_text(encoding="utf-8"))
                 check = dict(cached); digest = check.pop("analysis_digest", None)
                 if sha256_json(check) != digest or cached["parent_digest"] != source["digest"]:
                     raise ValueError("ANALYSIS_BINDING_CHANGED")
                 compilation = cached["analysis"].get("model_compilation")
-                if model is None or (compilation and compilation.get("model") == model):
+                if cached.get("adapter_bundle_version") == ADAPTER_BUNDLE_VERSION and (model is None or (compilation and compilation.get("model") == model)):
                     count += 1
                     continue
             try:
@@ -139,7 +140,19 @@ class Workbench:
                         result["gaps"].append("MODEL_SOURCE_PREFIX_12000_CHARS")
                 except (ValueError, KeyError, OSError, RuntimeError) as error:
                     result["gaps"].append("MODEL_COMPILATION_REJECTED:" + type(error).__name__)
-            row = {"source_id": source["source_id"], "parent_digest": source["digest"], "analysis": result}
+            if cached:
+                # Cache upgrades preserve the exact previous derivation, including model bindings.
+                historical = self.home / "analysis-history" / (cached["analysis_digest"] + ".json")
+                previous_bytes = path.read_bytes()
+                if historical.exists() and historical.read_bytes() != previous_bytes:
+                    raise ValueError("HISTORICAL_ANALYSIS_BYTES_CHANGED")
+                if not historical.exists():
+                    atomic_write(historical, previous_bytes)
+                old_compilation = cached["analysis"].get("model_compilation")
+                if model is None and old_compilation and cached["analysis"].get("text") == result.get("text"):
+                    result["model_compilation"] = old_compilation
+            row = {"source_id": source["source_id"], "parent_digest": source["digest"], "analysis": result,
+                   "adapter_bundle_version": ADAPTER_BUNDLE_VERSION}
             row["analysis_digest"] = sha256_json(row)
             atomic_write(self.home / "analyses" / (source["source_id"] + ".json"), (canonical_json(row) + "\n").encode("utf-8"))
             count += 1
@@ -292,6 +305,9 @@ class Workbench:
                     result["unknowns"].append({"field": "adapter_coverage", "referent": row["source_id"],
                                                "scope": row["analysis"]["adapter"], "question": gap,
                                                "resolver": "provide a compatible source adapter or a bound observation"})
+                for question in row["analysis"].get("unknowns", []):
+                    result["unknowns"].append({**question, "source_refs": [{"source_id": row["source_id"],
+                                                                          "digest": row["parent_digest"]}]})
             for item in result["graphs"]:
                 result["unknowns"].extend(dict(u) for u in item["graph"].get("unknowns", []))
             prior = self.prior_results()
@@ -317,7 +333,8 @@ class Workbench:
         if mode in {"DEEP", "BUILD"}:
             result["stages"].append("select_unknown_and_countertest")
             result["selected_unknown"] = next(iter(sorted(result["unknowns"],
-                key=lambda u: (-len(u["prior_occurrences"]), u["unknown_id"]))), None)
+                key=lambda u: (-score_candidate(query, " ".join(str(u.get(k, "")) for k in ("field", "question", "scope", "resolver")).replace("_", " "), "active"),
+                               -len(u["prior_occurrences"]), u["unknown_id"]))), None)
             if pattern is not None:
                 reversed_pattern = {**pattern, "edges": [{**e, "from": e["to"], "to": e["from"]} for e in pattern["edges"]]}
                 for item in result["graphs"]:
@@ -350,6 +367,8 @@ class Workbench:
         result["stages"].append("receipt_and_next_seed")
         result["next_seed"] = {"task": query, "suggested_mode": "DEEP" if result["unknowns"] else "ATLAS",
                                "unknown_ids": sorted({u["unknown_id"] for u in result["unknowns"]}),
+                               "selected_unknown_id": (result.get("selected_unknown") or {}).get("unknown_id"),
+                               "next_action": (result.get("selected_unknown") or {}).get("resolver"),
                                "authority_inherited": False}
         with self.store.write_lock():
             if self.source_state() != source_state:
@@ -398,6 +417,11 @@ class Workbench:
         base = self.store.verify()
         try:
             rows = self.analyses(); results = self.prior_results()
+            for path in (self.home / "analysis-history").glob("*.json"):
+                prior = strict_loads(path.read_text(encoding="utf-8"))
+                digest = prior.pop("analysis_digest", None)
+                if digest != path.stem or sha256_json(prior) != digest:
+                    raise ValueError("HISTORICAL_ANALYSIS_BINDING_CHANGED")
             sources = {s["source_id"]: s for s in self.store.sources()}
             for result in results:
                 if result.get("contract") != CONTRACT:

@@ -1,6 +1,6 @@
 """HALVETH NOVA continuity core and workbench."""
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 
 from .engine import NovaEngine
 

@@ -1,4 +1,4 @@
-# NOVA 2.0 · Research Workbench
+# NOVA 2.0.1 · Research Workbench
 
 Read a bounded source collection, recover earlier work, compare declared structures across names, run a countertest, and build a reusable program with a receipt. The continuity core remains available with its existing commands, including the published 1.2.1 integrity and locking fixes.
 
@@ -13,6 +13,11 @@ python nova/nova.py --workspace ./research verify
 ```
 
 `demo` uses a **fresh** workspace and prints the generated offline viewer path. See [WORKBENCH.md](WORKBENCH.md) for local AI generation, actual image/video/speech consumers, GitHub input, the LAGEFADEN integration, value-flow inquiry and their measured scopes. `run` remains the original receipt writer; **`work` executes the new controllers**.
+
+The 2.0.1 continuation patch admits declared value-inquiry questions into the
+work controller. Current-task relevance precedes recurrence when selecting a
+question; the selected question and next action enter the resume seed. Adapter
+upgrades preserve earlier cache bytes in a verified history.
 
 ## Preserved continuity core
 
