@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://halveth.example/contracts/nova-resume-v1.json",
+  "title": "NOVA resume v1",
+  "type": "object",
+  "required": ["contract", "sequence", "entry_hash", "run_id", "next_seed", "updated_at"],
+  "additionalProperties": false,
+  "properties": {
+    "contract": {"const": "halveth.nova.resume.v1"},
+    "sequence": {"type": "integer", "minimum": 1},
+    "entry_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "run_id": {"type": "string"},
+    "next_seed": {"type": "string"},
+    "updated_at": {"type": "string"}
+  }
+}
