@@ -4,6 +4,7 @@ import json
 import os
 import re
 import uuid
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +56,35 @@ class Workbench:
             raise ValueError("SOURCE_OBJECT_CHANGED")
         return data
 
+    def _history_refs(self, source_id: str) -> list[dict]:
+        folder = self.home / "analysis-history"
+        refs = []
+        if not folder.exists():
+            return refs
+        for path in sorted(folder.glob("*.json")):
+            raw = path.read_bytes()
+            prior = strict_loads(raw.decode("utf-8"))
+            check = dict(prior); digest = check.pop("analysis_digest", None)
+            if digest != path.stem or sha256_json(check) != digest:
+                raise ValueError("HISTORICAL_ANALYSIS_BINDING_CHANGED")
+            if prior.get("source_id") == source_id:
+                refs.append({"path": path.name, "sha256": sha256_bytes(raw), "bytes": len(raw)})
+        return refs
+
+    def _verify_history_refs(self, refs: list[dict]) -> None:
+        folder = (self.home / "analysis-history").resolve()
+        for ref in refs:
+            if not isinstance(ref, dict) or set(ref) != {"path", "sha256", "bytes"}:
+                raise ValueError("HISTORICAL_ANALYSIS_REFERENCE_INVALID")
+            path = (folder / ref["path"]).resolve()
+            if not path.is_relative_to(folder) or path.name != ref["path"]:
+                raise ValueError("HISTORICAL_ANALYSIS_REFERENCE_INVALID")
+            if not path.is_file():
+                raise ValueError("HISTORICAL_ANALYSIS_MISSING")
+            raw = path.read_bytes()
+            if len(raw) != ref["bytes"] or sha256_bytes(raw) != ref["sha256"]:
+                raise ValueError("HISTORICAL_ANALYSIS_BYTES_CHANGED")
+
     def index(self, paths: list[str | Path], *, limit: int = 500, model: str | None = None) -> dict:
         self.store.require()
         if not 1 <= limit <= 10000:
@@ -95,7 +125,8 @@ class Workbench:
                         break  # finite traversal; omitted tail is not enumerated or claimed complete
                     continue
                 visited += 1
-                data = file.read_bytes()
+                with file.open("rb") as stream:
+                    data = stream.read(MAX_BYTES + 1)
                 if len(data) > MAX_BYTES:
                     held.append({"locator": locator, "reason": "MAX_BYTES_AFTER_READ"})
                     continue
@@ -121,13 +152,29 @@ class Workbench:
                 check = dict(cached); digest = check.pop("analysis_digest", None)
                 if sha256_json(check) != digest or cached["parent_digest"] != source["digest"]:
                     raise ValueError("ANALYSIS_BINDING_CHANGED")
+                if "history_refs" in cached:
+                    self._verify_history_refs(cached["history_refs"])
+                else:
+                    # One-time migration for pre-2.0.2 caches. Preserve the exact legacy
+                    # current-cache bytes first, then bind all retained archives from the
+                    # migrated record so the migration itself does not erase history.
+                    legacy_bytes = path.read_bytes()
+                    historical = self.home / "analysis-history" / (cached["analysis_digest"] + ".json")
+                    if historical.exists() and historical.read_bytes() != legacy_bytes:
+                        raise ValueError("HISTORICAL_ANALYSIS_BYTES_CHANGED")
+                    if not historical.exists():
+                        atomic_write(historical, legacy_bytes)
+                    cached["history_refs"] = self._history_refs(source["source_id"])
+                    cached.pop("analysis_digest", None)
+                    cached["analysis_digest"] = sha256_json(cached)
+                    atomic_write(path, (canonical_json(cached) + "\n").encode("utf-8"))
                 compilation = cached["analysis"].get("model_compilation")
                 if cached.get("adapter_bundle_version") == ADAPTER_BUNDLE_VERSION and (model is None or (compilation and compilation.get("model") == model)):
                     count += 1
                     continue
             try:
                 result = extract(source["locator"], data)
-            except (ValueError, SyntaxError, OSError, RuntimeError) as error:
+            except (ValueError, SyntaxError, OSError, RuntimeError, zipfile.BadZipFile) as error:
                 result = {"contract": "nova.adapter-result.v1", "adapter_version": "1.0.0",
                           "adapter": "FAILED", "parent_digest": source["digest"], "text": "", "graphs": [],
                           "facts": {}, "coverage": {"input_bytes": len(data)}, "gaps": [type(error).__name__]}
@@ -140,19 +187,24 @@ class Workbench:
                         result["gaps"].append("MODEL_SOURCE_PREFIX_12000_CHARS")
                 except (ValueError, KeyError, OSError, RuntimeError) as error:
                     result["gaps"].append("MODEL_COMPILATION_REJECTED:" + type(error).__name__)
+            history_refs = []
             if cached:
                 # Cache upgrades preserve the exact previous derivation, including model bindings.
+                history_refs = list(cached.get("history_refs", []))
                 historical = self.home / "analysis-history" / (cached["analysis_digest"] + ".json")
                 previous_bytes = path.read_bytes()
                 if historical.exists() and historical.read_bytes() != previous_bytes:
                     raise ValueError("HISTORICAL_ANALYSIS_BYTES_CHANGED")
                 if not historical.exists():
                     atomic_write(historical, previous_bytes)
+                ref = {"path": historical.name, "sha256": sha256_bytes(previous_bytes), "bytes": len(previous_bytes)}
+                if ref not in history_refs:
+                    history_refs.append(ref)
                 old_compilation = cached["analysis"].get("model_compilation")
                 if model is None and old_compilation and cached["analysis"].get("text") == result.get("text"):
                     result["model_compilation"] = old_compilation
             row = {"source_id": source["source_id"], "parent_digest": source["digest"], "analysis": result,
-                   "adapter_bundle_version": ADAPTER_BUNDLE_VERSION}
+                   "adapter_bundle_version": ADAPTER_BUNDLE_VERSION, "history_refs": history_refs}
             row["analysis_digest"] = sha256_json(row)
             atomic_write(self.home / "analyses" / (source["source_id"] + ".json"), (canonical_json(row) + "\n").encode("utf-8"))
             count += 1
@@ -170,6 +222,7 @@ class Workbench:
             check = dict(row); got = check.pop("analysis_digest", None)
             if row.get("parent_digest") != source["digest"] or sha256_json(check) != got:
                 raise ValueError("ANALYSIS_BINDING_CHANGED")
+            self._verify_history_refs(row.get("history_refs", []))
             self.read_object(source)
             rows.append({**row, "source": source})
         return rows
@@ -228,6 +281,8 @@ class Workbench:
             raise ValueError("PURE_BUILD_REQUIRES_BUILD_MODE_AND_LOCAL_MODEL")
         if pattern is not None:
             validate_graph(pattern)
+            if len(pattern["nodes"]) > 8:
+                raise ValueError("PATTERN_NODE_LIMIT_8")
         verification = self.store.verify()
         if not verification["ok"]:
             raise RuntimeError("INVALID_WORKSPACE")
@@ -256,7 +311,14 @@ class Workbench:
                 try:
                     task_graph = compile_concepts(query, model=model, task="Extract only the requested structural query pattern.")
                     result["task_interpretation"] = {**task_graph, "input_kind": "USER_TASK_NOT_OBSERVATION"}
-                    pattern = task_graph.get("graph")
+                    candidate_pattern = task_graph.get("graph")
+                    if candidate_pattern is not None and len(candidate_pattern["nodes"]) > 8:
+                        result["coverage"]["task_interpretation"] = {
+                            "state": "OPEN", "reason": "PATTERN_NODE_LIMIT_8",
+                            "nodes": len(candidate_pattern["nodes"])
+                        }
+                    else:
+                        pattern = candidate_pattern
                 except (ValueError, KeyError, OSError, RuntimeError) as error:
                     result["coverage"]["task_interpretation"] = {"state": "OPEN", "reason": type(error).__name__}
             selected = [h for h in hits if h["usable_as_current"]][:3]
@@ -453,6 +515,17 @@ class Workbench:
                         content = file.read_bytes()
                         if sha256_bytes(content) != item["sha256"] or len(content) != item["bytes"]:
                             raise ValueError("BUILD_ARTIFACT_CHANGED")
+                    manifest_ref = build.get("manifest")
+                    version = tuple(int(x) for x in result.get("controller_version", "0.0.0").split("."))
+                    if manifest_ref is None and version >= (2, 0, 2):
+                        raise ValueError("BUILD_MANIFEST_BINDING_MISSING")
+                    if manifest_ref is not None:
+                        manifest_file = (target / manifest_ref["path"]).resolve()
+                        if not manifest_file.is_relative_to(target) or manifest_file.name != "BUILD_MANIFEST.json":
+                            raise ValueError("BUILD_MANIFEST_PATH_INVALID")
+                        manifest_bytes = manifest_file.read_bytes()
+                        if len(manifest_bytes) != manifest_ref["bytes"] or sha256_bytes(manifest_bytes) != manifest_ref["sha256"]:
+                            raise ValueError("BUILD_MANIFEST_CHANGED")
                 for ref in result.get("generated_sources", []):
                     if self.store.source_by_id(ref["source_id"])["digest"] != ref["digest"]:
                         raise ValueError("GENERATED_SOURCE_BINDING_CHANGED")
