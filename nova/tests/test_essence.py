@@ -55,6 +55,21 @@ class EssenceTests(unittest.TestCase):
             self.assertEqual(reads, [1_000_001])
             self.assertEqual(work.store.sources(), [])
 
+    def test_cli_accepts_valid_essence_request_without_json_suffix(self):
+        from halveth_nova.cli import main
+        with tempfile.TemporaryDirectory() as root:
+            work = Workbench(root); work.engine.init("suffix-independent")
+            source = Path(root) / "request.txt"
+            source.write_text(json.dumps(fixture()), encoding="utf-8")
+            out, err = io.StringIO(), io.StringIO()
+            with redirect_stdout(out), redirect_stderr(err):
+                status = main(["--workspace", root, "essence-farm", str(source), "--mode", "DEEP"])
+            self.assertEqual(status, 0, err.getvalue())
+            result = json.loads(out.getvalue())
+            self.assertEqual(len(result["result"]["essence_farms"][0]["branches"]), 3)
+            self.assertEqual(len(result["result"]["essence_farms"][0]["comparisons"]), 3)
+            self.assertTrue(work.verify()["ok"])
+
     def test_complete_pair_graph_and_false_friend_control(self):
         result = harvest(fixture())
         self.assertEqual(len(result["comparisons"]), 3)

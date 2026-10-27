@@ -174,6 +174,10 @@ class Workbench:
                     continue
             try:
                 result = extract(source["locator"], data)
+                if "essence-input" in source.get("tags", []) and not result.get("essence_request"):
+                    from .essence import validate_request
+                    result["essence_request"] = validate_request(strict_loads(data.decode("utf-8")))
+                    result["adapter"] = "declared-essence-request"
             except (ValueError, SyntaxError, OSError, RuntimeError, zipfile.BadZipFile) as error:
                 result = {"contract": "nova.adapter-result.v1", "adapter_version": "1.0.0",
                           "adapter": "FAILED", "parent_digest": source["digest"], "text": "", "graphs": [],
