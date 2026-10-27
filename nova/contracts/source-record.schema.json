@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://halveth.example/contracts/nova-source-record-v1.json",
+  "title": "NOVA source record v1",
+  "type": "object",
+  "required": ["source_id", "locator", "digest", "byte_length", "media_type", "added_at", "tags", "metadata"],
+  "additionalProperties": false,
+  "properties": {
+    "source_id": {"type": "string", "pattern": "^src_[a-f0-9]{20}$"},
+    "locator": {"type": "string", "minLength": 1},
+    "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "byte_length": {"type": "integer", "minimum": 0},
+    "media_type": {"type": "string", "minLength": 1},
+    "added_at": {"type": "string", "minLength": 1},
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "metadata": {"type": "object"}
+  }
+}
