@@ -93,5 +93,8 @@ def finalize_kit(target: Path, result: dict) -> dict:
              if p.is_file() and "__pycache__" not in p.parts and p.name != "BUILD_MANIFEST.json"]
     manifest = {**result["build"], "files": files}
     manifest.pop("directory", None); manifest.pop("viewer", None)
-    (target / "BUILD_MANIFEST.json").write_bytes((canonical_json(manifest) + "\n").encode("utf-8"))
-    return {**result["build"], "files": files}
+    manifest_bytes = (canonical_json(manifest) + "\n").encode("utf-8")
+    (target / "BUILD_MANIFEST.json").write_bytes(manifest_bytes)
+    return {**result["build"], "files": files,
+            "manifest": {"path": "BUILD_MANIFEST.json", "sha256": sha256_bytes(manifest_bytes),
+                         "bytes": len(manifest_bytes)}}

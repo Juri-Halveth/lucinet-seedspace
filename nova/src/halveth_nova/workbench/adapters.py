@@ -16,7 +16,7 @@ from .graph import CONTRACT, validate_graph
 
 MAX_BYTES = 8_000_000
 MAX_TEXT = 250_000
-ADAPTER_BUNDLE_VERSION = "2.0.2"
+ADAPTER_BUNDLE_VERSION = "2.0.1"
 
 
 def capabilities() -> dict:

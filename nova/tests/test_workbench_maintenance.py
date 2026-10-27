@@ -101,7 +101,7 @@ class WorkbenchMaintenanceTests(unittest.TestCase):
         self.assertFalse(self.w.verify()["ok"])
 
     def test_index_read_is_bounded_when_file_grows_after_stat(self):
-        p = self.root / "growing.txt"
+        p = (self.root / "growing.txt").resolve()
         p.write_bytes(b"tiny")
         original_open = Path.open
         reads = []
@@ -137,16 +137,34 @@ class WorkbenchMaintenanceTests(unittest.TestCase):
         p = self.archive()
         p.write_text(json.dumps(json.loads(p.read_text()), indent=1), encoding="utf-8")
         w = Workbench(self.root)
-        with self.assertRaisesRegex(ValueError, "HISTORICAL_ANALYSIS_BINDING_CHANGED"):
+        with self.assertRaisesRegex(ValueError, "HISTORICAL_ANALYSIS_(BINDING|BYTES)_CHANGED"):
             w.compile_sources()
 
     def test_legacy_history_snapshot_is_explicitly_bound_at_upgrade(self):
         p = self.archive()
-        records = [s for s in self.w.store.sources() if "workbench-history" in s.get("tags", [])]
-        self.assertEqual(len(records), 1)
-        self.assertEqual(records[0]["digest"], hashlib.sha256(p.read_bytes()).hexdigest())
-        self.assertEqual(self.w.store.status_map()[records[0]["source_id"]]["status"], "historical")
+        # Bind behavior to the accepted upstream cache-reference contract.
+        refs = self.w.analyses()[0]["history_refs"]
+        record = next(ref for ref in refs if ref["path"] == p.name)
+        self.assertEqual(record["sha256"], hashlib.sha256(p.read_bytes()).hexdigest())
+        self.assertEqual(record["bytes"], p.stat().st_size)
         self.assertEqual(len(self.w.analyses()), 1)
+
+    def test_legacy_build_manifest_is_checked_after_upgrade(self):
+        from halveth_nova.workbench.builder import finalize_kit
+        def legacy_finalize(*args):
+            result = finalize_kit(*args)
+            result.pop("manifest", None)
+            return result
+        with patch("halveth_nova.workbench.controller.WORKBENCH_VERSION", "2.0.1"), patch(
+                "halveth_nova.workbench.builder.finalize_kit", legacy_finalize):
+            result = self.w.run("legacy build", mode="BUILD")["result"]
+        self.assertTrue(self.w.verify()["ok"])
+        manifest = self.root / result["build"]["directory"] / "BUILD_MANIFEST.json"
+        original = manifest.read_bytes()
+        manifest.write_bytes(b'{"compile":"FAIL","files":[]}\n')
+        self.assertFalse(self.w.verify()["ok"])
+        manifest.write_bytes(original)
+        self.assertTrue(self.w.verify()["ok"])
 
 
 if __name__ == "__main__":
