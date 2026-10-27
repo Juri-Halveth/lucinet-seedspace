@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "halveth-nova"
+version = "1.2.0"
+description = "Provenance-preserving research continuity runtime for HALVETH/LUCINET"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{name = "Juri Janovski / Juri-Halveth"}]
+license = {text = "LicenseRef-HALVETH-PIRL-2.0"}
+keywords = ["provenance", "research", "continuity", "search", "ledger", "halveth", "lucinet"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Operating System :: OS Independent",
+]
+
+[project.scripts]
+nova = "halveth_nova.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
