@@ -42,7 +42,17 @@ Der [lokale Slot-Simulator](notebook-lab.html) setzt die Platzregeln als eigene 
 `blueprints.js` registriert die fünf Renderer; Daten werden nicht als fremder Code ausgeführt. `room-state.js` speichert Bauplan-ID, relative Position, Sichtbarkeit und Variantenindex. Die visuelle Browserfassung ist noch keine dreidimensionale Spielwelt.
 
 
-## NOVA Core · Research continuity runtime
+## NOVA 2.0 · Research workbench
+
+NOVA now has executable work controllers on top of the continuity core: source adapters, structure matching across names, countertests, portable analysis builds, optional local AI function generation and a value-flow inquiry. Start an offline demonstration in a fresh workspace:
+
+```bash
+python nova/nova.py --workspace ./nova-demo demo
+```
+
+The command prints a local HTML viewer and a verified continuation receipt. [Workbench guide](nova/WORKBENCH.md).
+
+### Continuity core
 
 This repository now also contains [`nova/`](nova/), a reusable Python runtime for provenance-preserving research continuity. It stores exact source bytes by SHA-256, keeps superseded/retracted interpretations searchable without treating them as current, writes hash-chained Research Receipts, verifies continuation state and exports portable research snapshots.
 

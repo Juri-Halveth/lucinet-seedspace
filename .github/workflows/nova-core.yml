@@ -61,3 +61,24 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: nova\nova.cmd --version
+      - name: Execute workbench and bound integration
+        shell: python
+        run: |
+          import subprocess, sys, tempfile
+          from pathlib import Path
+          launcher = str(Path('nova/nova.py').resolve())
+          with tempfile.TemporaryDirectory() as tmp:
+              for args in [['demo', '--node', 'node'], ['value-flow', 'nova/examples/value-flow.json'], ['verify']]:
+                  subprocess.run([sys.executable, launcher, '--workspace', tmp, *args], check=True)
+  media:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'Pillow==13.0.0' 'av==19.0.2' 'pypdf==6.21.2'
+      - name: Optional media consumers
+        env:
+          PYTHONPATH: nova/src
+        run: python -m unittest discover -s nova/tests -v

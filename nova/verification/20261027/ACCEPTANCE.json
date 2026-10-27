@@ -1,0 +1,188 @@
+{
+  "contract": "nova.acceptance-snapshot.v1",
+  "recorded_at": "2026-10-27T01:05:53.383309+00:00",
+  "source_commit": "122842f0b5d561e512a8d8a4bcd65142b920caee",
+  "core_base_integrated": "274cbdef652021ccac6ab4297614e95057cf89b9",
+  "observations": {
+    "unit_tests": 78,
+    "local_python_versions": [
+      "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]"
+    ],
+    "modes_executed": 4,
+    "structural_matches_in_three_declared_domains": 3,
+    "generated_function_state": "TESTED_CANDIDATE",
+    "withheld_cases_passed": 4,
+    "generation_attempts_in_acceptance": 3,
+    "recovered_generated_sources": 2,
+    "ledger_verification_after_reuse_and_value_input": {
+      "ok": true,
+      "errors": [],
+      "source_count": 16,
+      "relation_count": 0,
+      "ledger_count": 5,
+      "latest_hash": "be63c22daf810c3a63e86ca5d6a48bdbb08848dadd48638f321746321c5cff1f",
+      "workbench": {
+        "analyses": 9,
+        "committed_results": 5
+      }
+    },
+    "lagefaden": {
+      "cases": 6,
+      "fixturePasses": 6,
+      "checklistOvercountsRouteEvidence": 5
+    },
+    "w_rows_per_case": [
+      22,
+      22,
+      22,
+      22,
+      22,
+      22
+    ],
+    "github_inventory": {
+      "public_repositories_returned": 18,
+      "inventory_page_limit": 100,
+      "repository_content": "lucinet-seedspace",
+      "commit": "539990df83ebd690f95528ea9c212d3b9c1eaa25",
+      "files_read": 3,
+      "eligible_files_omitted": 28
+    },
+    "new_application_output": 2
+  },
+  "scope": "Owned local synthetic fixtures and explicitly bounded GitHub GET input. No human trial, general software executor, hardware connection or market valuation.",
+  "development_runs_preserved": [
+    {
+      "kind": "initial pilot",
+      "attempts": 1,
+      "state": "HELD_FAILED_CANDIDATE"
+    },
+    {
+      "kind": "repair probe",
+      "attempts": 2,
+      "state": "TESTED_CANDIDATE"
+    },
+    {
+      "kind": "first full pilot",
+      "attempts": 3,
+      "state": "HELD_FAILED_CANDIDATE"
+    },
+    {
+      "kind": "acceptance",
+      "attempts": 3,
+      "state": "TESTED_CANDIDATE"
+    }
+  ],
+  "source_bindings": [
+    {
+      "path": "nova/src/halveth_nova/__init__.py",
+      "working_tree_sha256": "114c9141524bc983b39df4685306b67fe0336b3112cefac9668cfd2f876e151c",
+      "git_blob_sha256": "114c9141524bc983b39df4685306b67fe0336b3112cefac9668cfd2f876e151c"
+    },
+    {
+      "path": "nova/src/halveth_nova/cli.py",
+      "working_tree_sha256": "6ecb746c89195760a4856db445982b1ddc7e8fb62cab122e01c3d84d57afe7b1",
+      "git_blob_sha256": "9b5c97e1f5ff2f5c4be8e587a2cc890e136fe9fe7589738c82718fae0433cd52"
+    },
+    {
+      "path": "nova/src/halveth_nova/engine.py",
+      "working_tree_sha256": "a014d33c68fe9b5f0ccafe8d52a500c22b9c085fc36a8af23ab86c7e2005af22",
+      "git_blob_sha256": "b62d717e0bd3d587506167e3cca3c01e185881cf7764e80f11db4f2ff57c7870"
+    },
+    {
+      "path": "nova/src/halveth_nova/jsonutil.py",
+      "working_tree_sha256": "c7244610196d7a0e0a7beb673f9131ff1ea97c77b61374cba16cf49ddcb1708b",
+      "git_blob_sha256": "e1cf0262454bf8b70364503f040004e0cc3d92135e44a88581db0327188482d1"
+    },
+    {
+      "path": "nova/src/halveth_nova/model.py",
+      "working_tree_sha256": "198ab549a13ec2055528774d1a93f88a46733d0aef5ab4cf52c3848b4743e2b9",
+      "git_blob_sha256": "756d6e8b3950061ae3a21c6770beef7157147b297ee228fcf6ff9b873ed1fa00"
+    },
+    {
+      "path": "nova/src/halveth_nova/search.py",
+      "working_tree_sha256": "035875be7caad621169d98064374f204a3c5ba8f8d180a5388eca631ae88f753",
+      "git_blob_sha256": "e04c919085538425de51c2ca3fa3ba8ea4cfeed93ed8079541ca4075a8730ca3"
+    },
+    {
+      "path": "nova/src/halveth_nova/store.py",
+      "working_tree_sha256": "a39a733b4f1a643f11bcad36e984ce6b06b10b1fafaf8996e2b4e0225546eaf6",
+      "git_blob_sha256": "a39a733b4f1a643f11bcad36e984ce6b06b10b1fafaf8996e2b4e0225546eaf6"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/__init__.py",
+      "working_tree_sha256": "912619186a3aa1f9119265149d6bab7d540bf388c3fa4646def0d29929d34fc9",
+      "git_blob_sha256": "912619186a3aa1f9119265149d6bab7d540bf388c3fa4646def0d29929d34fc9"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/adapters.py",
+      "working_tree_sha256": "1ac5b3defa9fcbb13d148a9fb583cba492c9c845e799b3594200003c2a804cb0",
+      "git_blob_sha256": "1ac5b3defa9fcbb13d148a9fb583cba492c9c845e799b3594200003c2a804cb0"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/builder.py",
+      "working_tree_sha256": "cee89db70ea6215f7d9a630f6bb61a09a03b2dd9116048b7d329d627cc4da877",
+      "git_blob_sha256": "cee89db70ea6215f7d9a630f6bb61a09a03b2dd9116048b7d329d627cc4da877"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/codegen.py",
+      "working_tree_sha256": "65f83636696db825dece455c687577a468373d4da7b18fe37636c45f21e74417",
+      "git_blob_sha256": "65f83636696db825dece455c687577a468373d4da7b18fe37636c45f21e74417"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/controller.py",
+      "working_tree_sha256": "0638fd522b816df7b30d5bc36f90f8a10ed56b06a9ba1d6f35a542824e866719",
+      "git_blob_sha256": "0638fd522b816df7b30d5bc36f90f8a10ed56b06a9ba1d6f35a542824e866719"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/demo.py",
+      "working_tree_sha256": "1e3dd56146210f3fbd01608fa9bdd560092170cffe44bd8fd60d60b39e99dc55",
+      "git_blob_sha256": "1e3dd56146210f3fbd01608fa9bdd560092170cffe44bd8fd60d60b39e99dc55"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/github_adapter.py",
+      "working_tree_sha256": "f666c801a9a6cceea975220426377a9baf7414df78505d1fb924ac0183f18538",
+      "git_blob_sha256": "f666c801a9a6cceea975220426377a9baf7414df78505d1fb924ac0183f18538"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/graph.py",
+      "working_tree_sha256": "014a1680bf4fcb5db92970e70240f13143fa37d6c4c87607c126a4efbb3a4706",
+      "git_blob_sha256": "014a1680bf4fcb5db92970e70240f13143fa37d6c4c87607c126a4efbb3a4706"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/integrations.py",
+      "working_tree_sha256": "e1f697de48355c3bacf455fa6b60c5b6512614e3954e545c039d6fa4cf32a82d",
+      "git_blob_sha256": "e1f697de48355c3bacf455fa6b60c5b6512614e3954e545c039d6fa4cf32a82d"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/local_model.py",
+      "working_tree_sha256": "99dc68aa5928519738cae024b7b872dde6e3424a33a31ff6421bd905c1ab3505",
+      "git_blob_sha256": "99dc68aa5928519738cae024b7b872dde6e3424a33a31ff6421bd905c1ab3505"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/media.py",
+      "working_tree_sha256": "262f26b8a9b2a994574036f64bde67253c8e190d87c605aeba15964957ceea1c",
+      "git_blob_sha256": "262f26b8a9b2a994574036f64bde67253c8e190d87c605aeba15964957ceea1c"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/pure_vm.py",
+      "working_tree_sha256": "18ab1a5900ed27c32325af4a92028549238c6c49ace46787f5c93d17cadedfc0",
+      "git_blob_sha256": "18ab1a5900ed27c32325af4a92028549238c6c49ace46787f5c93d17cadedfc0"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/value_flow.py",
+      "working_tree_sha256": "3ca59443d04f05e5d04952304b8a8f173ecc8546da4440e876a0caa0012b00c4",
+      "git_blob_sha256": "3ca59443d04f05e5d04952304b8a8f173ecc8546da4440e876a0caa0012b00c4"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/view.py",
+      "working_tree_sha256": "4618f994e694fdb37a772ccb43fe7ae9ca1c2d7d6191e90f637a40579c19e2b1",
+      "git_blob_sha256": "4618f994e694fdb37a772ccb43fe7ae9ca1c2d7d6191e90f637a40579c19e2b1"
+    },
+    {
+      "path": "nova/src/halveth_nova/workbench/vision.py",
+      "working_tree_sha256": "bebe657ac709414a3e0d604732a41a308278ba19924f7c87d680745426eea18e",
+      "git_blob_sha256": "bebe657ac709414a3e0d604732a41a308278ba19924f7c87d680745426eea18e"
+    }
+  ],
+  "source_byte_rule": "Working-tree and Git-blob bytes are bound separately; Git text newline conversion is not byte identity."
+}

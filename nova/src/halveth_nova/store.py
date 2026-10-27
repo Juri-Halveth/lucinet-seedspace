@@ -283,19 +283,23 @@ class NovaStore:
     def append_receipt(self, receipt: dict[str, Any], *, expected_previous_hash: str | None = None) -> dict[str, Any]:
         self.require()
         with self.write_lock():
-            rows = self.ledger()
-            previous = rows[-1]["entry_hash"] if rows else None
-            if expected_previous_hash is not None and expected_previous_hash != previous:
-                raise RuntimeError("STALE_PREDECESSOR")
-            if receipt.get("predecessor_entry_hash") != previous:
-                raise RuntimeError("STALE_PREDECESSOR")
-            seq = len(rows) + 1
-            envelope = {"contract": LEDGER_CONTRACT, "sequence": seq, "previous_hash": previous, "receipt": receipt}
-            envelope["entry_hash"] = sha256_json(envelope)
-            append_jsonl(self.ledger_path, envelope)
-            resume = self._resume_for(envelope)
-            atomic_write(self.resume_path, (canonical_json(resume) + "\n").encode("utf-8"))
-            return envelope
+            return self._append_receipt_unlocked(receipt, expected_previous_hash=expected_previous_hash)
+
+    def _append_receipt_unlocked(self, receipt: dict[str, Any], *, expected_previous_hash: str | None = None) -> dict[str, Any]:
+        """Caller must own write_lock; shared by the kernel and work controller."""
+        rows = self.ledger()
+        previous = rows[-1]["entry_hash"] if rows else None
+        if expected_previous_hash is not None and expected_previous_hash != previous:
+            raise RuntimeError("STALE_PREDECESSOR")
+        if receipt.get("predecessor_entry_hash") != previous:
+            raise RuntimeError("STALE_PREDECESSOR")
+        seq = len(rows) + 1
+        envelope = {"contract": LEDGER_CONTRACT, "sequence": seq, "previous_hash": previous, "receipt": receipt}
+        envelope["entry_hash"] = sha256_json(envelope)
+        append_jsonl(self.ledger_path, envelope)
+        resume = self._resume_for(envelope)
+        atomic_write(self.resume_path, (canonical_json(resume) + "\n").encode("utf-8"))
+        return envelope
 
     @staticmethod
     def _resume_for(envelope: dict[str, Any]) -> dict[str, Any]:

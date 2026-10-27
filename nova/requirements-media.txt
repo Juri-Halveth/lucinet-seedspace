@@ -1,0 +1,5 @@
+# Optional consumers; base NOVA remains standard-library-only.
+Pillow==13.0.0
+pypdf==6.21.2
+av==19.0.2
+faster-whisper==1.2.1
