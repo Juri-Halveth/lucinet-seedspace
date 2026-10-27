@@ -17,10 +17,16 @@ python nova/labs/molecular-lineage/serve.py --workspace C:\MY_RESEARCH\molecular
 
 The server prints its loopback URL with a free port. Open that URL. The private
 workspace must be separate from the served application directory. The server
-binds `127.0.0.1` only and serves a fixed asset allowlist. No workspace contents,
-source files from unrelated projects or local paths are exposed by the API.
+binds `127.0.0.1` only and serves a fixed asset allowlist. The API returns bounded
+status metadata and explicitly saved model checkpoints. Arbitrary workspace
+files, unrelated project sources and local filesystem paths have no API route.
 
-To continue an existing workspace, make an explicit, fresh local fork first:
+Use this on a trusted local workstation. Host/origin checks protect browser
+requests; they do not authenticate other local processes or OS users.
+
+To reopen this lab's existing history, start it with the same `--workspace`.
+That path is the writable target: startup may update derived NOVA analyses.
+To preserve a different original workspace, make an explicit, fresh fork first:
 
 ```powershell
 python nova/labs/molecular-lineage/prepare_continuity.py --predecessor C:\MY_RESEARCH\prior-state --workspace C:\MY_RESEARCH\molecular-state
@@ -30,6 +36,9 @@ This verifies the predecessor, copies `.nova`, checks exact journal prefixes,
 migrates derived analyses in the new copy using NOVA 2.1.2, and writes a
 `PREDECESSOR.json` receipt. The predecessor files remain unchanged. A fresh
 directory is required; the helper never replaces an existing workspace.
+The helper copies `.nova` only. It retains NOVA's sources and ledger, while the
+new lab's separate run/receipt index starts empty. To reopen earlier lab
+checkpoints through the interface, use their original lab workspace.
 
 ## Use
 
@@ -97,7 +106,7 @@ commit. A receipt's hashes prove byte/ledger binding, not empirical chemistry.
 ## Verify
 
 ```powershell
-node --test nova/labs/molecular-lineage/engine.test.mjs
+node --test nova/labs/molecular-lineage/engine.test.mjs nova/labs/molecular-lineage/app.test.mjs
 python -X utf8 nova/labs/molecular-lineage/test_bridge.py
 ```
 

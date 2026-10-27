@@ -38,7 +38,7 @@ jobs:
         shell: python
         run: |
           import subprocess, sys
-          subprocess.run(['node', '--test', 'nova/labs/molecular-lineage/engine.test.mjs'], check=True)
+          subprocess.run(['node', '--test', 'nova/labs/molecular-lineage/engine.test.mjs', 'nova/labs/molecular-lineage/app.test.mjs'], check=True)
           subprocess.run([sys.executable, '-X', 'utf8', 'nova/labs/molecular-lineage/test_bridge.py'], check=True)
       - name: Zero-install CLI smoke test
         shell: python
