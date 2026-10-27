@@ -3,7 +3,7 @@ import json
 import unittest
 from pathlib import Path
 
-from halveth_nova.workbench.value_flow import assess
+from halveth_nova.workbench.value_flow import assess, declared_questions
 
 
 class ValueTests(unittest.TestCase):
@@ -39,6 +39,16 @@ class ValueTests(unittest.TestCase):
     def test_reference_digest_binds_input_not_verified_truth(self):
         self.spec["evidence_refs"] = [{"id": "fixture", "digest": "0" * 64, "supports_facet": "effect_metric"}]
         self.assertEqual(assess(self.spec)["references"][0]["state"], "DECLARED_NOT_VERIFIED")
+
+    def test_question_consumer_rejects_promoted_state_and_replaced_question(self):
+        result = assess(self.spec)
+        self.assertEqual(declared_questions(result)[0]["source_statement_state"], "DECLARED_QUESTION_NOT_VERIFIED_BENEFIT")
+        changed = copy.deepcopy(result); changed["state"] = "OBSERVED_BENEFIT"
+        with self.assertRaises(ValueError):
+            declared_questions(changed)
+        changed = copy.deepcopy(result); changed["open_questions"][0]["question"] = "unbound replacement"
+        with self.assertRaises(ValueError):
+            declared_questions(changed)
 
 
 if __name__ == "__main__":

@@ -73,3 +73,24 @@ def assess(spec: dict) -> dict:
             "next_measurement": QUESTIONS[next((k for k in ("comparison", "effect_metric", "measurement_plan") if k in open_facets), "measurement_plan")],
             "business_case": scenario, "valuation": "OPEN", "price": "OPEN", "funding_decision": "OPEN",
             "creator_status_used_as_multiplier": False, "authority": "NONE"}
+
+
+def declared_questions(value: dict) -> list[dict]:
+    """Read questions from an assessment as declarations; grant no evidence status."""
+    if (value.get("contract") != "nova.value-flow-assessment.v1" or
+            value.get("state") != "LOCAL_DRAFT_VALUE_INQUIRY" or value.get("authority") != "NONE" or
+            not isinstance(value.get("spec_digest"), str) or not re.fullmatch(r"[a-f0-9]{64}", value["spec_digest"])):
+        raise ValueError("VALUE_ASSESSMENT_BINDING")
+    facets = value.get("facets")
+    if not isinstance(facets, dict) or set(facets) != set(FACETS):
+        raise ValueError("VALUE_ASSESSMENT_FACETS")
+    for key, text in facets.items():
+        if text is not None and (not isinstance(text, str) or not text.strip() or len(text) > 4000):
+            raise ValueError("VALUE_ASSESSMENT_FACET")
+    expected = [{"facet": key, "question": QUESTIONS[key]} for key in FACETS if facets[key] is None or facets[key] == "UNKNOWN"]
+    if value.get("open_questions") != expected:
+        raise ValueError("VALUE_ASSESSMENT_QUESTIONS")
+    return [{"field": "value_" + row["facet"], "referent": "value_spec:" + value["spec_digest"],
+             "scope": "declared value inquiry", "definition": "nova.value-facet." + row["facet"] + ".v1",
+             "question": row["question"], "resolver": "Provide the missing value " + row["facet"].replace("_", " ") + " with its source and measurement scope.",
+             "source_statement_state": "DECLARED_QUESTION_NOT_VERIFIED_BENEFIT"} for row in expected]

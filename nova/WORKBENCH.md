@@ -1,4 +1,4 @@
-# NOVA 2.0: from source collection to reusable work
+# NOVA 2.0.1: from source collection to reusable work
 
 NOVA combines the existing exact-byte source store and receipt ledger with
 bounded source consumers, structural queries, work controllers and executable
@@ -164,13 +164,20 @@ data; the resulting workspace stays local until a separate export decision.
 
 ```bash
 python nova/nova.py --workspace ./research value-flow nova/examples/value-flow.json
-python nova/nova.py --workspace ./research work "value measurement pilot" --mode ATLAS
+python nova/nova.py --workspace ./research work "value measurement pilot" --mode DEEP
 ```
 
 The value inquiry binds a problem, beneficiary role, artifact, comparator,
 effect metric, measurement plan, reuse, rights and funding route. Missing fields
 become named questions. References are declared pointers until checked; a
 supplied status or digest is not promoted into observed benefit.
+
+Those questions also enter the controller's unknown lineage. DEEP selects by
+current-task relevance, then prior occurrences and stable ID; unrelated recurring
+questions stay present. The exact selected ID and proposed next action are bound
+in the continuation seed. This does not authorize a pilot, spending or contact.
+An adapter-bundle upgrade recompiles stale caches and preserves their previous
+exact bytes; `verify` also checks this historical derivation layer.
 
 An optional `business_case` uses exact decimal strings for `baseline_unit_cost`,
 `candidate_unit_cost`, `units`, `adoption_fraction`, `integration_cost` and

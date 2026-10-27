@@ -19,6 +19,7 @@ from halveth_nova.workbench.graph import CONTRACT, structural_match, unknown_key
 from halveth_nova.workbench.local_model import bind_compilation
 from halveth_nova.workbench.view import render
 from halveth_nova.workbench.codegen import build_function, evaluate
+from halveth_nova.workbench.value_flow import assess
 
 
 def graph(name="one", labels=None, domain="test"):
@@ -248,6 +249,43 @@ class WorkbenchTests(unittest.TestCase):
         self.assertIn(built["ledger"]["run_id"], [r["run_id"] for r in next_run["recovered_runs"]])
         self.assertTrue(any(h["usable_as_current"] for h in next_run["hits"]))
         self.assertTrue(self.w.verify()["ok"])
+
+    def value_record(self):
+        spec = json.loads((Path(__file__).resolve().parents[1] / "examples" / "value-flow.json").read_text())
+        return self.w.store.ingest_bytes("value-assessment.json", json.dumps(assess(spec)).encode("utf-8"))
+
+    def test_value_measurement_beats_recurring_unrelated_unknown_and_enters_next_seed(self):
+        self.w.index([self.write("scene.json", graph())])
+        for _ in range(3):
+            self.w.run("sensor identity", mode="DEEP")
+        self.value_record()
+        result = self.w.run("value measurement pilot", mode="DEEP")["result"]
+        self.assertEqual(result["selected_unknown"]["field"], "value_measurement_plan")
+        self.assertEqual(result["next_seed"]["selected_unknown_id"], result["selected_unknown"]["unknown_id"])
+        self.assertIn("measurement plan", result["next_seed"]["next_action"])
+        self.assertFalse(result["next_seed"]["authority_inherited"])
+        self.assertTrue(any(u["field"] == "sensor_identity" for u in result["unknowns"]))
+
+    def test_legacy_cache_upgrade_retains_old_bytes_and_compiles_new_consumer(self):
+        source = self.value_record(); self.w.compile_sources()
+        path = self.w.home / "analyses" / (source["source_id"] + ".json")
+        row = json.loads(path.read_text()); row.pop("adapter_bundle_version")
+        row["analysis"]["adapter"] = "utf8-text"; row["analysis"].pop("unknowns")
+        row.pop("analysis_digest"); row["analysis_digest"] = sha256_json(row)
+        old_bytes = json.dumps(row).encode(); path.write_bytes(old_bytes)
+        result = self.w.run("value measurement", mode="DEEP")["result"]
+        old_file = self.w.home / "analysis-history" / (row["analysis_digest"] + ".json")
+        self.assertEqual(old_file.read_bytes(), old_bytes)
+        self.assertEqual(result["selected_unknown"]["field"], "value_measurement_plan")
+        self.assertTrue(self.w.verify()["ok"])
+        old_file.write_bytes(b"{}")
+        self.assertIn("HISTORICAL_ANALYSIS_BINDING_CHANGED", self.w.verify()["errors"])
+
+    def test_retracted_value_assessment_does_not_create_active_measurement_question(self):
+        source = self.value_record()
+        self.w.store.set_status(source["source_id"], "retracted", note="withdrawn scenario")
+        result = self.w.run("value measurement", mode="DEEP")["result"]
+        self.assertFalse(any(u["field"].startswith("value_") for u in result["unknowns"]))
 
 
 class PureFunctionTests(unittest.TestCase):

@@ -16,6 +16,7 @@ from .graph import CONTRACT, validate_graph
 
 MAX_BYTES = 8_000_000
 MAX_TEXT = 250_000
+ADAPTER_BUNDLE_VERSION = "2.0.1"
 
 
 def capabilities() -> dict:
@@ -119,6 +120,10 @@ def extract(locator: str, data: bytes) -> dict:
             if isinstance(value, dict) and value.get("contract") == CONTRACT:
                 result["graphs"] = [validate_graph(value)]
                 result["adapter"] = "declared-concept-graph"
+            elif isinstance(value, dict) and value.get("contract") == "nova.value-flow-assessment.v1":
+                from .value_flow import declared_questions
+                result["unknowns"] = declared_questions(value)
+                result["adapter"] = "declared-value-inquiry"
         if suffix == ".py":
             result["adapter"] = "python-ast"
             tree = ast.parse(text)
