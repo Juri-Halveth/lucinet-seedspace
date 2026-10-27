@@ -17,8 +17,9 @@ jobs:
   test:
     strategy:
       matrix:
+        os: ['ubuntu-latest', 'windows-latest']
         python-version: ['3.11', '3.12', '3.13']
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,20 +32,44 @@ jobs:
           PYTHONPATH: nova/src
         run: python -m unittest discover -s nova/tests -v
       - name: Zero-install CLI smoke test
+        shell: python
         run: |
-          tmp="$(mktemp -d)"
-          python nova/nova.py --workspace "$tmp" init --name ci-smoke
-          printf 'source provenance unknown\n' > "$tmp/source.txt"
-          python nova/nova.py --workspace "$tmp" ingest "$tmp/source.txt" --tag smoke
-          python nova/nova.py --workspace "$tmp" run "provenance" --mode FLOW --next-seed "continue"
-          python nova/nova.py --workspace "$tmp" verify
-          python nova/nova.py --workspace "$tmp" export "$tmp/export.zip"
+          import hashlib, json, subprocess, sys, tempfile, zipfile
+          from pathlib import Path
+          launcher = str(Path('nova/nova.py').resolve())
+          with tempfile.TemporaryDirectory() as tmp:
+              root = Path(tmp)
+              source = root / 'source.txt'
+              source.write_text('source provenance unknown\n', encoding='utf-8')
+              commands = [['init', '--name', 'ci-smoke'], ['ingest', str(source), '--tag', 'smoke'],
+                          ['run', 'provenance', '--mode', 'FLOW', '--next-seed', 'continue'],
+                          ['resume'], ['verify'], ['export', str(root/'export.zip')]]
+              for args in commands:
+                  subprocess.run([sys.executable, launcher, '--workspace', tmp, *args], check=True)
+              with zipfile.ZipFile(root/'export.zip') as archive:
+                  assert archive.testzip() is None
+                  manifest = json.loads(archive.read('NOVA_EXPORT_MANIFEST.json'))
+                  assert '.nova/write.lock' not in archive.namelist()
+                  for row in manifest['files']:
+                      data = archive.read(row['path'])
+                      assert len(data) == row['bytes']
+                      assert hashlib.sha256(data).hexdigest() == row['sha256']
+      - name: Unix zero-install launcher
+        if: runner.os != 'Windows'
+        run: ./nova/nova.sh --version
+      - name: Windows zero-install launcher
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: nova\nova.cmd --version
       - name: Execute workbench and bound integration
+        shell: python
         run: |
-          tmp="$(mktemp -d)"
-          python nova/nova.py --workspace "$tmp" demo --node node
-          python nova/nova.py --workspace "$tmp" value-flow nova/examples/value-flow.json
-          python nova/nova.py --workspace "$tmp" verify
+          import subprocess, sys, tempfile
+          from pathlib import Path
+          launcher = str(Path('nova/nova.py').resolve())
+          with tempfile.TemporaryDirectory() as tmp:
+              for args in [['demo', '--node', 'node'], ['value-flow', 'nova/examples/value-flow.json'], ['verify']]:
+                  subprocess.run([sys.executable, launcher, '--workspace', tmp, *args], check=True)
   media:
     runs-on: ubuntu-latest
     steps:

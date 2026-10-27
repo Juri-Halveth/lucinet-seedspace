@@ -37,6 +37,11 @@ It is intentionally narrower than an AI model. It does not decide truth, execute
 
 A retracted interpretation can still be found, but search marks it as **not current** and lowers its rank. A changed file becomes a new source record while the old one remains as a superseded predecessor.
 
+If a locator later returns to an already stored superseded version, that version
+becomes active again through new status events; the displaced version becomes
+superseded. Source records and earlier receipts keep their original bytes.
+Reingestion does not undo an explicit retraction.
+
 ## Run it
 
 ### Zero-install / offline
@@ -115,6 +120,7 @@ NOVA creates a `.nova/` directory inside the chosen workspace:
   relations.jsonl           typed relations
   ledger.jsonl              hash-chained Research Receipts
   resume.json               verified latest continuation seed
+  write.lock                persistent OS-lock anchor; omitted from exports
 ```
 
 The source locator is descriptive provenance. The digest binds the bytes actually stored. A hash proves byte identity within the captured material; it does **not** authenticate an external publisher or physical observation.
@@ -159,6 +165,30 @@ That prevents a strong lexical match from silently reviving an interpretation th
 - next seed.
 
 The receipt is wrapped in a hash-chained ledger entry. `nova verify` recomputes the chain and refuses a stale `resume.json`.
+
+Verification binds every resume field to the latest receipt and checks receipt
+inputs, claim evidence and relation evidence against the retained source
+inventory. Historical receipt statuses remain snapshots of their run; a later
+retraction does not rewrite them. These checks establish internal consistency,
+not authentication of an external publisher.
+
+## Concurrent local work and exports
+
+NOVA 1.2.1 uses operating-system locks on a stable `write.lock` file: byte-range
+locking on Windows and `flock` on Unix. A live writer keeps its lock regardless
+of elapsed time; process exit releases the kernel lock automatically. The file
+itself remains in place and must not be deleted while processes use the workspace.
+
+Finish existing 1.2.0 writers before upgrading a workspace to 1.2.1. Concurrent
+processes must all use the same locking protocol on the local filesystem; this
+is not a distributed lock or a guarantee against direct file edits outside NOVA.
+Source, event and receipt formats remain unchanged.
+
+Export holds this lock through verification and ZIP creation. Each archived
+file is read once for both its manifest hash and ZIP entry, and the finished
+archive atomically replaces its destination. The coordination lock is excluded.
+Export destinations inside `.nova` are rejected. Repeated exports of unchanged
+workspace data remain byte-identical.
 
 ## General-purpose integration
 
