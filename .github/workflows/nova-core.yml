@@ -3,10 +3,14 @@ name: NOVA core
 on:
   push:
     paths:
+      - 'README.md'
+      - 'SEEDSPACE.md'
       - 'nova/**'
       - '.github/workflows/nova-core.yml'
   pull_request:
     paths:
+      - 'README.md'
+      - 'SEEDSPACE.md'
       - 'nova/**'
       - '.github/workflows/nova-core.yml'
 
