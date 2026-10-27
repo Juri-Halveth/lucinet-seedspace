@@ -1,4 +1,4 @@
-# NOVA 2.0.1 · Research Workbench
+# NOVA 2.0.2 · Research Workbench
 
 Read a bounded source collection, recover earlier work, compare declared structures across names, run a countertest, and build a reusable program with a receipt. The continuity core remains available with its existing commands, including the published 1.2.1 integrity and locking fixes.
 
@@ -16,8 +16,11 @@ python nova/nova.py --workspace ./research verify
 
 The 2.0.1 continuation patch admits declared value-inquiry questions into the
 work controller. Current-task relevance precedes recurrence when selecting a
-question; the selected question and next action enter the resume seed. Adapter
-upgrades preserve earlier cache bytes in a verified history.
+question; the selected question and next action enter the resume seed. NOVA
+2.0.2 additionally bounds index reads across size races, turns corrupt DOCX
+parsing into an explicit failed derivation, rejects oversized model query
+patterns before structural matching, binds the final BUILD manifest, and keeps
+retained analysis-history bytes reachable through integrity-bound references.
 
 ## Preserved continuity core
 
