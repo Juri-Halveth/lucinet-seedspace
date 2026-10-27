@@ -70,6 +70,32 @@ class EssenceTests(unittest.TestCase):
             self.assertEqual(len(result["result"]["essence_farms"][0]["comparisons"]), 3)
             self.assertTrue(work.verify()["ok"])
 
+    def test_existing_2_1_0_cache_is_recompiled_for_suffix_independent_essence(self):
+        with tempfile.TemporaryDirectory() as root:
+            work = Workbench(root); work.engine.init("cache-upgrade")
+            source = work.store.ingest_bytes("request.txt", json.dumps(fixture()).encode("utf-8"),
+                                             tags=["essence-input"])
+            with patch("halveth_nova.workbench.controller.ADAPTER_BUNDLE_VERSION", "2.1.0"):
+                work.compile_sources()
+            cached = work.home / "analyses" / (source["source_id"] + ".json")
+            before = json.loads(cached.read_text(encoding="utf-8"))
+            self.assertEqual(before["analysis"]["adapter"], "declared-essence-request")
+            # Recreate the pre-fix 2.1.0 cache shape that classified by suffix only.
+            before["analysis"]["adapter"] = "utf8-text"
+            before["analysis"].pop("essence_request", None)
+            before["adapter_bundle_version"] = "2.1.0"
+            before.pop("analysis_digest")
+            from halveth_nova.jsonutil import sha256_json
+            before["analysis_digest"] = sha256_json(before)
+            cached.write_text(json.dumps(before), encoding="utf-8")
+            work.compile_sources()
+            after = work.analyses()[0]
+            self.assertEqual(after["adapter_bundle_version"], "2.1.2")
+            self.assertEqual(after["analysis"]["adapter"], "declared-essence-request")
+            result = work.run("NOVA", mode="DEEP", essence_source=source["source_id"])["result"]
+            self.assertEqual(len(result["essence_farms"][0]["branches"]), 3)
+            self.assertTrue(work.verify()["ok"])
+
     def test_complete_pair_graph_and_false_friend_control(self):
         result = harvest(fixture())
         self.assertEqual(len(result["comparisons"]), 3)
