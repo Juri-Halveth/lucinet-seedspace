@@ -53,6 +53,42 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("export", help="export verified .nova state as reproducible zip")
     s.add_argument("target")
 
+    s = sub.add_parser("index", help="compile bounded source adapters, optionally with a local model")
+    s.add_argument("paths", nargs="+"); s.add_argument("--limit", type=int, default=500)
+    s.add_argument("--local-model")
+
+    s = sub.add_parser("work", help="execute FLOW / ATLAS / DEEP / BUILD controllers")
+    s.add_argument("query"); s.add_argument("--mode", choices=sorted(RUN_MODES), default="FLOW")
+    s.add_argument("--pattern", help="declared concept-graph query JSON")
+    s.add_argument("--local-model", help="explicit model on the fixed local Ollama endpoint")
+    s.add_argument("--max-sources", type=int, default=500)
+    s.add_argument("--integration", choices=["lagefaden"])
+    s.add_argument("--node", default="node", help="explicit local Node executable for the registered integration")
+    s.add_argument("--build-spec", help="explicit pure JSON-function build specification and withheld cases")
+
+    s = sub.add_parser("capabilities", help="show actually available adapters and local model inventory")
+
+    s = sub.add_parser("apply-function", help="explicitly evaluate a generated pure function on a JSON input in the restricted child")
+    s.add_argument("code"); s.add_argument("--input", required=True)
+
+    s = sub.add_parser("value-flow", help="bind a value inquiry, measurement gaps and an optional declared cost scenario")
+    s.add_argument("spec")
+
+    s = sub.add_parser("transcribe", help="derive a transcript with an existing offline speech model directory")
+    s.add_argument("path"); s.add_argument("--model-directory", required=True); s.add_argument("--language")
+    s.add_argument("--seconds", type=int, default=30)
+
+    s = sub.add_parser("describe", help="derive visible image content with an explicitly selected local vision model")
+    s.add_argument("path"); s.add_argument("--vision-model", required=True)
+
+    s = sub.add_parser("demo", help="execute all four controllers on three synthetic domains")
+    s.add_argument("--local-model"); s.add_argument("--node")
+    s.add_argument("--generate-function", action="store_true", help="enable the pure-function generator and withheld cases")
+
+    s = sub.add_parser("universe", help="explicit bounded GitHub GET-only adapter")
+    s.add_argument("--owner", required=True); s.add_argument("--repo"); s.add_argument("--ref")
+    s.add_argument("--max-files", type=int, default=24); s.add_argument("--max-repos", type=int, default=100)
+
     return p
 
 
@@ -106,9 +142,98 @@ def main(argv: list[str] | None = None) -> int:
             store.require()
             emit({"config": store.read_config(), "verification": store.verify(), "source_status": store.status_map()})
         elif args.command == "verify":
-            result = store.verify(); emit(result); return 0 if result["ok"] else 2
+            from .workbench.controller import Workbench
+            result = Workbench(args.workspace).verify(); emit(result); return 0 if result["ok"] else 2
         elif args.command == "export":
+            from .workbench.controller import Workbench
+            if not Workbench(args.workspace).verify()["ok"]:
+                raise ValueError("WORKBENCH_VERIFICATION_FAILED_BEFORE_EXPORT")
             emit(store.export_zip(args.target))
+        elif args.command == "index":
+            from .workbench.controller import Workbench
+            emit(Workbench(args.workspace).index(args.paths, limit=args.limit, model=args.local_model))
+        elif args.command == "work":
+            from .workbench.controller import Workbench
+            from .jsonutil import strict_loads
+            pattern = strict_loads(Path(args.pattern).read_text(encoding="utf-8")) if args.pattern else None
+            build_spec = strict_loads(Path(args.build_spec).read_text(encoding="utf-8")) if args.build_spec else None
+            emit(Workbench(args.workspace).run(args.query, mode=args.mode, pattern=pattern,
+                                              model=args.local_model, max_sources=args.max_sources,
+                                              integration=args.integration, node=args.node, build_spec=build_spec))
+        elif args.command == "capabilities":
+            from .workbench.adapters import capabilities
+            from .workbench.local_model import available_models
+            result = capabilities()
+            try:
+                result["local_models"] = available_models()
+            except (OSError, ValueError):
+                result["local_models"] = []
+            emit(result)
+        elif args.command == "apply-function":
+            from .workbench.codegen import evaluate
+            from .jsonutil import strict_loads, sha256_bytes
+            code_file, input_file = Path(args.code), Path(args.input)
+            if code_file.stat().st_size > 12000 or input_file.stat().st_size > 400000:
+                raise ValueError("PURE_INPUT_LIMIT")
+            raw_code, raw_input = code_file.read_bytes(), input_file.read_bytes()
+            outcome = evaluate(raw_code.decode("utf-8"), [{"id": "application", "input": strict_loads(raw_input.decode("utf-8")), "expected": None}])
+            if "outcomes" not in outcome:
+                emit(outcome); return 2
+            emit({"contract": "nova.pure-function-application.v1", "state": "OUTPUT_COMPUTED",
+                  "source_digest": sha256_bytes(raw_code), "input_digest": sha256_bytes(raw_input),
+                  "output": outcome["outcomes"][0]["actual"], "limits": outcome["limits"],
+                  "meaning": "computed output; this application supplied no expected-result oracle"})
+        elif args.command == "value-flow":
+            from .workbench.value_flow import assess
+            from .jsonutil import strict_loads, canonical_json
+            file = Path(args.spec).resolve()
+            if file.stat().st_size > 100000:
+                raise ValueError("VALUE_INPUT_LIMIT")
+            raw = file.read_bytes(); result = assess(strict_loads(raw.decode("utf-8")))
+            source = store.ingest_bytes(store._locator_for(file, file), raw, tags=["value-flow-input"])
+            record = store.ingest_bytes("derived/" + source["source_id"] + "/value-flow.json",
+                (canonical_json(result) + "\n").encode("utf-8"), tags=["value-flow-result"],
+                metadata={"parent_source_id": source["source_id"], "parent_digest": source["digest"], "state": "DECLARED_SCENARIO"})
+            emit({"result": result, "record": record})
+        elif args.command == "universe":
+            from .workbench.github_adapter import inventory
+            emit(inventory(store, args.owner, repo=args.repo, ref=args.ref, max_files=args.max_files, max_repos=args.max_repos))
+        elif args.command == "transcribe":
+            from .workbench.media import transcribe
+            from .jsonutil import canonical_json
+            file = Path(args.path).resolve()
+            if file.stat().st_size > 8_000_000:
+                raise ValueError("MEDIA_INPUT_LIMIT")
+            raw = file.read_bytes()
+            source = store.ingest_bytes(store._locator_for(file, file), raw, tags=["speech-input"])
+            result = transcribe(raw, Path(args.model_directory), language=args.language, seconds_limit=args.seconds)
+            result["parent_source_id"] = source["source_id"]
+            record = store.ingest_bytes("derived/" + source["source_id"] + "/transcript.json",
+                (canonical_json(result) + "\n").encode("utf-8"), tags=["speech-transcript"],
+                metadata={"parent_source_id": source["source_id"], "parent_digest": source["digest"], "state": "MODEL_INFERRED"})
+            emit({"result": result, "record": record})
+        elif args.command == "describe":
+            from .workbench.vision import describe
+            from .workbench.adapters import extract
+            from .jsonutil import canonical_json
+            file = Path(args.path).resolve()
+            if file.stat().st_size > 8_000_000:
+                raise ValueError("VISION_IMAGE_LIMIT")
+            raw = file.read_bytes()
+            pixels = extract(file.name, raw)
+            if pixels["adapter"] != "image-pixels" or not pixels["facts"].get("width"):
+                raise ValueError("DECODED_IMAGE_REQUIRED")
+            source = store.ingest_bytes(store._locator_for(file, file), raw, tags=["vision-input"])
+            result = describe(raw, model=args.vision_model); result["parent_source_id"] = source["source_id"]
+            record = store.ingest_bytes("derived/" + source["source_id"] + "/vision.json",
+                (canonical_json(result) + "\n").encode("utf-8"), tags=["vision-derivation"],
+                metadata={"parent_source_id": source["source_id"], "parent_digest": source["digest"], "state": "MODEL_INFERRED"})
+            emit({"result": result, "record": record})
+        elif args.command == "demo":
+            from .workbench.demo import run
+            result = run(args.workspace, model=args.local_model, node=args.node, generate_function=args.generate_function)
+            emit(result)
+            return 0 if result["outcome"] == "DEMO_PASSED" and result["verification"]["ok"] else 2
         else:
             raise RuntimeError("unknown command")
         return 0

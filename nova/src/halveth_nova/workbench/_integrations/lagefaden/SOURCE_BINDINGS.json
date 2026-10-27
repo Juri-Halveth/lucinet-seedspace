@@ -1,0 +1,34 @@
+{
+  "contract": "nova.integration-source-binding.v1",
+  "sourceRepository": "https://github.com/Juri-Halveth/halveth-forschungslabor",
+  "sourceRef": "codex/lagefaden-cihbw-20261026",
+  "sourceCommit": "eb3f0f5954e832d1f1ae0bacba5d6674746fe987",
+  "capture": "EXACT_LOCAL_COMMITTED_BYTES",
+  "files": [
+    {
+      "path": "model.mjs",
+      "sourcePath": "branches/lagefaden/model.mjs",
+      "sha256": "c3d0b055b93645d16818570d8b3b9d5ff681978feb699071ff275f3949632037",
+      "license": "MIT"
+    },
+    {
+      "path": "witness-replay.mjs",
+      "sourcePath": "branches/lagefaden/witness-replay.mjs",
+      "sha256": "67c388f597be87bfe8a9e692750b69a84546163562f1ccb44b27dc957998eee5",
+      "license": "MIT"
+    },
+    {
+      "path": "witness-cases.mjs",
+      "sourcePath": "branches/lagefaden/witness-cases.mjs",
+      "sha256": "3a3c4a4bbefa9bd5d6d5f09285cf2d580d5848d299d5d5b6208c1fbf203d2fcd",
+      "license": "MIT"
+    },
+    {
+      "path": "w-space.mjs",
+      "sourcePath": "branches/lagefaden/w-space.mjs",
+      "sha256": "439ff4903a710d756e305a107c2abec0b9780889dec8b835a2ca4c4656bb678e",
+      "license": "MIT"
+    }
+  ],
+  "actions": "Synthetic offline evaluator only; no control interface"
+}

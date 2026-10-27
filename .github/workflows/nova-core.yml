@@ -39,3 +39,21 @@ jobs:
           python nova/nova.py --workspace "$tmp" run "provenance" --mode FLOW --next-seed "continue"
           python nova/nova.py --workspace "$tmp" verify
           python nova/nova.py --workspace "$tmp" export "$tmp/export.zip"
+      - name: Execute workbench and bound integration
+        run: |
+          tmp="$(mktemp -d)"
+          python nova/nova.py --workspace "$tmp" demo --node node
+          python nova/nova.py --workspace "$tmp" value-flow nova/examples/value-flow.json
+          python nova/nova.py --workspace "$tmp" verify
+  media:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'Pillow==13.0.0' 'av==19.0.2' 'pypdf==6.21.2'
+      - name: Optional media consumers
+        env:
+          PYTHONPATH: nova/src
+        run: python -m unittest discover -s nova/tests -v

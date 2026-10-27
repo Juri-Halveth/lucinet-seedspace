@@ -38,6 +38,8 @@ Rules:
 4. Identify which W-questions are actually answered and which remain open: `WER, WEN, WEM, WESSEN, WAS, WANN, WIE LANGE, WIE OFT, WO, WOHER, WOHIN, WIE, WARUM, WESHALB, WOFÜR, WOMIT, WODURCH, WELCHE VERSION, WIE SICHER, WAS WENN, WIE WEITER, WAS FEHLT`.
 5. Do not force an unnamed new thing into an old project label.
 6. Choose one working mode: `FLOW`, `ATLAS`, `DEEP`, or `BUILD`.
+7. Use `work` for the executable controller and `run` for the original receipt writer. Select adapters, model and integration explicitly; inspect `capabilities` before requiring optional dependencies.
+8. Bind a useful next action and its outcome. For function builds, prebind the specification and withheld cases, preserve rejected candidates, then search for the generated result in the next run. Value-flow assessment keeps effect evidence, a declared business scenario, price and funding decision separate.
 
 ## Bridges
 

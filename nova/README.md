@@ -1,4 +1,20 @@
-# NOVA Core 1.2 · LUCINET Research Tank
+# NOVA 2.0 · Research Workbench
+
+Read a bounded source collection, recover earlier work, compare declared structures across names, run a countertest, and build a reusable program with a receipt. The continuity core introduced in 1.2 remains available with its existing commands.
+
+```bash
+# Python 3.11+, no package installation for the base workbench
+python nova/nova.py --workspace ./demo demo
+python nova/nova.py --workspace ./research init --name research
+python nova/nova.py --workspace ./research index ./my-notes ./my-code
+python nova/nova.py --workspace ./research work "What did we already find?" --mode ATLAS
+python nova/nova.py --workspace ./research work "Build a reusable analysis" --mode BUILD
+python nova/nova.py --workspace ./research verify
+```
+
+`demo` uses a **fresh** workspace and prints the generated offline viewer path. See [WORKBENCH.md](WORKBENCH.md) for local AI generation, actual image/video/speech consumers, GitHub input, the LAGEFADEN integration, value-flow inquiry and their measured scopes. `run` remains the original receipt writer; **`work` executes the new controllers**.
+
+## Preserved continuity core
 
 NOVA Core is a small, dependency-free Python runtime for **finding sources, preserving their exact bytes and status, writing research receipts, and resuming later without silently rewriting history**.
 
@@ -112,7 +128,7 @@ The receipt records one of four explicit modes:
 - `DEEP` — investigate one decisive question;
 - `BUILD` — create or integrate a usable artifact.
 
-The runtime does not change behavior magically based on the label. The mode is part of the provenance contract so another human or agent knows what kind of run produced the receipt.
+For the preserved `run` command, the mode labels the receipt. The new `work` command executes distinct controllers: FLOW retrieves, ATLAS also compares structures and coverage, DEEP adds a selected unknown and countertest, BUILD also generates, compiles and checks an executable kit. Optional pure-function generation requires an explicit build specification and local model.
 
 ## Status and contradiction handling
 

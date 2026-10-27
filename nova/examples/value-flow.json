@@ -1,0 +1,16 @@
+{
+  "contract": "nova.value-flow-spec.v1",
+  "facets": {
+    "problem": "A team must distinguish copied reports from distinct declared origins.",
+    "beneficiary_role": "Analyst preparing a source-bound situation report",
+    "artifact": "NOVA generated pure-function candidate plus bound test receipt; insert the selected digest before external use",
+    "comparison": "Same synthetic reports with a deterministic checklist; a human comparison remains open",
+    "effect_metric": "Correct distinct declared-origin count on the bound fixtures",
+    "measurement_plan": null,
+    "reuse": "Apply the same function to message or sensor-report JSON without importing physical independence",
+    "rights": "Original NOVA code: HALVETH PIRL 2.0; vendored LAGEFADEN modules retain MIT",
+    "funding_route": "PILOT_CONTRACT"
+  },
+  "evidence_refs": [],
+  "business_case": null
+}

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "halveth-nova"
-version = "1.2.0"
-description = "Provenance-preserving research continuity runtime for HALVETH/LUCINET"
+version = "2.0.0"
+description = "Source-bound research, structural retrieval and bounded executable builds for HALVETH/LUCINET"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{name = "Juri Janovski / Juri-Halveth"}]
@@ -25,3 +25,6 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+halveth_nova = ["workbench/_integrations/lagefaden/*"]
