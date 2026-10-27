@@ -9,13 +9,14 @@ import itertools
 import json
 import re
 import urllib.request
+from datetime import datetime
 
 from ..jsonutil import sha256_bytes, sha256_json
 from .graph import closed, identifier
 
 REQUEST = "nova.essence-request.v1"
 RESULT = "nova.essence-farm.v1"
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 AXES = {
     "decompose": "Welche Wörter, Zeichen und möglichen Wortgrenzen enthält der Ausgangstext?",
     "etymology": "Welche Herkunft ist für welche Wortform und Sprache belegt?",
@@ -128,12 +129,12 @@ def detect_association(query):
             "intent": "UNKNOWN", "meaning": "routing heuristic; not a claim about the user's intention"}
 
 
-def plan(query, *, operator_version=VERSION):
+def plan(query, *, operator_version=VERSION, recorded_at=None):
     """An unresearched association remains an open plan, without invented facts."""
     return harvest({"contract": REQUEST,
                     "seed": {"text": query[:500] if len(query) <= 500 else "association",
                              "kind": "PHRASE", "context": query},
-                    "sources": [], "branches": []}, operator_version=operator_version)
+                    "sources": [], "branches": []}, operator_version=operator_version, recorded_at=recorded_at)
 
 
 def expand_with_local_model(value, *, model, timeout=90):
@@ -209,9 +210,14 @@ def expand_with_local_model(value, *, model, timeout=90):
     return {"request": expanded, "compiler": compiler}
 
 
-def harvest(value, *, request_ref=None, operator_version=VERSION):
-    if operator_version not in {"1.0.0", "1.0.1"}:
+def harvest(value, *, request_ref=None, operator_version=VERSION, recorded_at=None):
+    if operator_version not in {"1.0.0", "1.0.1", "1.0.2"}:
         raise ValueError("ESSENCE_OPERATOR_VERSION")
+    if operator_version == "1.0.2" and recorded_at is not None:
+        text(recorded_at, 80)
+        stamp = datetime.fromisoformat(recorded_at.replace("Z", "+00:00"))
+        if stamp.tzinfo is None or stamp.utcoffset().total_seconds() != 0:
+            raise ValueError("ESSENCE_UTC_RECORDING_TIME_REQUIRED")
     validate_request(value)
     request_digest = sha256_json(value)
     seed = value["seed"]
@@ -258,14 +264,26 @@ def harvest(value, *, request_ref=None, operator_version=VERSION):
         pair_basis = [left["id"], right["id"], request_digest]
         if operator_version != "1.0.0":
             pair_basis.append(operator_version)
+        if operator_version == "1.0.2":
+            pair_basis.append(recorded_at)
         pair_id = "pair_" + sha256_json(pair_basis)[:24]
-        comparisons.append({"relation_id": pair_id, "definition": definition,
+        comparison = {"relation_id": pair_id, "relation_type": "COMPARE_DECLARED_TRANSITIONS",
+                            "definition": definition,
                             "definition_digest": sha256_json(definition), "left": left["address"], "right": right["address"],
                             "direction": "SYMMETRIC", "scope": REQUEST, "event_time": "UNKNOWN",
                             "source_refs": [request_ref] if request_ref else [], "evidence_state": "DECLARED_ABSTRACTION_COMPARISON",
                             "authority_effect": "NONE", "write_domain_id": pair_id,
                             "shared_transitions": [list(e) for e in common],
-                            "result": "SHARED_DECLARED_TRANSITION" if common else "NO_SHARED_DECLARED_TRANSITION"})
+                            "result": "SHARED_DECLARED_TRANSITION" if common else "NO_SHARED_DECLARED_TRANSITION"}
+        if operator_version == "1.0.2":
+            comparison.update(recorded_at=recorded_at or "UNKNOWN",
+                              clock_or_timebase="CONTROLLER_UTC_WALL_CLOCK" if recorded_at else "NOT_BOUND_IN_PURE_CALL")
+            if request_ref is None:
+                comparison["source_refs"] = [{"kind": "CANONICAL_REQUEST", "digest": request_digest,
+                                              "semantic_address": "/"}]
+        else:
+            comparison.pop("relation_type")
+        comparisons.append(comparison)
         if left["domain"] != right["domain"] and left["bindings"] and right["bindings"]:
             for edge in common:
                 groups.setdefault(edge, set()).update((left["id"], right["id"]))

@@ -104,8 +104,10 @@ class EssenceTests(unittest.TestCase):
         self.assertIn("definition", harvest(fixture())["new_seeds"][0])
 
     def test_relation_addresses_and_domain_differences_are_preserved(self):
-        result = harvest(fixture())
+        result = harvest(fixture(), recorded_at="2026-10-27T02:00:00Z")
         for pair in result["comparisons"]:
+            self.assertEqual(pair["recorded_at"], "2026-10-27T02:00:00Z")
+            self.assertEqual(pair["clock_or_timebase"], "CONTROLLER_UTC_WALL_CLOCK")
             for endpoint in (pair["left"], pair["right"]):
                 self.assertEqual(len(endpoint["digest"]), 64)
                 self.assertIn("field_locator", endpoint["semantic_address"])

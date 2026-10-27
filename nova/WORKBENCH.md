@@ -89,6 +89,8 @@ answer. Other words and domains use the same request contract.
 including differences and open questions. It is not presented as an autonomous
 model result. Operator 1.0.1 binds question identity to seed, kind, branch/domain
 and exact question; older 1.0.0 receipts retain their original verifier behavior.
+Operator 1.0.2 adds an explicit recording time, timebase and relation type to
+new comparison records; 1.0.0 and 1.0.1 remain separately reproducible.
 
 ## Local concept inference and a new executable function
 

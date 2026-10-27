@@ -323,11 +323,11 @@ class Workbench:
             requests = []
         for row in requests:
             farm = harvest(row["analysis"]["essence_request"],
-                request_ref={"source_id": row["source_id"], "digest": row["parent_digest"]})
+                request_ref={"source_id": row["source_id"], "digest": row["parent_digest"]}, recorded_at=result["created_at"])
             farm["producer_state"] = row["source"].get("metadata", {}).get("state", "SUPPLIED_READING")
             result["essence_farms"].append(farm)
         if not requests and cue["state"] == "LEXICAL_CUE_FOUND":
-            result["essence_farms"].append(plan(query))
+            result["essence_farms"].append(plan(query, recorded_at=result["created_at"]))
         if result["essence_farms"]:
             result["stages"].append("association_expand_compare_distill")
             for farm in result["essence_farms"]:
@@ -529,10 +529,10 @@ class Workbench:
                         if source["digest"] != ref["digest"]:
                             raise ValueError("ESSENCE_REQUEST_BINDING_CHANGED")
                         expected = harvest(strict_loads(self.read_object(source).decode("utf-8")), request_ref=ref,
-                                           operator_version=farm["operator_version"])
+                                           operator_version=farm["operator_version"], recorded_at=result["created_at"])
                         expected["producer_state"] = source.get("metadata", {}).get("state", "SUPPLIED_READING")
                     else:
-                        expected = plan(result["task"], operator_version=farm["operator_version"])
+                        expected = plan(result["task"], operator_version=farm["operator_version"], recorded_at=result["created_at"])
                     if farm != expected:
                         raise ValueError("ESSENCE_DERIVATION_CHANGED")
                 expected_relations = []
