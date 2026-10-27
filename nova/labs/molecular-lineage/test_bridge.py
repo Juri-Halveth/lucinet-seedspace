@@ -1,8 +1,10 @@
 import http.client
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import threading
 import unittest
@@ -41,11 +43,70 @@ class BridgeTests(unittest.TestCase):
         conn.close()
         return status, raw, content_type
 
-    def fixture(self, step=32):
+    def fixture(self, step=32, config=None, options=None):
         result = subprocess.run([self.lab.node, str(ROOT / "validate.mjs"), "--fixture"],
-            input=json.dumps({"config": {"scenario": "catalase", "gate": "open", "seed": 127}, "step": step}).encode(),
+            input=json.dumps({"config": config or {"scenario": "catalase", "gate": "open", "seed": 127},
+                              "step": step, "options": options or {}}).encode(),
             check=True, capture_output=True)
         return result.stdout
+
+    @staticmethod
+    def file_hashes(root):
+        return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+                for p in root.rglob("*") if p.is_file() and p.name != "write.lock"}
+
+    def fork(self, old, new):
+        return subprocess.run([sys.executable, "-X", "utf8", str(ROOT / "prepare_continuity.py"),
+                               "--predecessor", str(old), "--workspace", str(new)], capture_output=True, text=True)
+
+    def test_fork_preserves_checkpoint_reopen_retry_and_run_binding(self):
+        old = module.Lab(Path(self.tmp.name) / "fork-old")
+        raw = self.fixture(17)
+        receipt = old.save(raw)
+        saved = old.read_checkpoint(receipt["packetDigest"])
+        before = self.file_hashes(old.workspace)
+        new = Path(self.tmp.name) / "fork-new"
+        done = self.fork(old.workspace, new)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        copied = module.Lab(new)
+        self.assertIn(receipt["packetDigest"], [r["packetDigest"] for r in copied.status()["checkpoints"]])
+        self.assertEqual(copied.read_checkpoint(receipt["packetDigest"]), saved)
+        self.assertTrue(copied.save(raw)["alreadySaved"])
+        packet = json.loads(raw)
+        other = self.fixture(17, {"scenario": "catalase", "gate": "closed", "seed": 127},
+                             {"runId": packet["run"]["runId"], "recordedAt": packet["run"]["recordedAt"]})
+        with self.assertRaisesRegex(ValueError, "RUN_ID_ALREADY_BINDS_ANOTHER_PLAN"):
+            copied.save(other)
+        self.assertEqual(self.file_hashes(old.workspace), before)
+
+    def test_fork_rejects_a_misbound_lab_receipt_before_creating_destination(self):
+        old = module.Lab(Path(self.tmp.name) / "bad-fork-old")
+        receipt = old.save(self.fixture())
+        path = old.receipts / (receipt["packetDigest"] + ".json")
+        broken = json.loads(path.read_bytes())
+        broken["sourceDigest"] = "0" * 64
+        path.write_text(json.dumps(broken), encoding="utf-8")
+        before = self.file_hashes(old.workspace)
+        new = Path(self.tmp.name) / "bad-fork-new"
+        done = self.fork(old.workspace, new)
+        self.assertNotEqual(done.returncode, 0)
+        self.assertIn("LAB_RECEIPT_BINDING_INVALID", done.stderr)
+        self.assertFalse(new.exists())
+        self.assertEqual(self.file_hashes(old.workspace), before)
+
+    def test_fork_of_core_workspace_without_lab_indexes_remains_supported(self):
+        old = module.Workbench(Path(self.tmp.name) / "core-fork-old")
+        old.store.init("core predecessor")
+        old.store.ingest_bytes("example.txt", b"source-bound continuity\n")
+        old.run("continuity", mode="FLOW")
+        before = self.file_hashes(old.store.root)
+        new = Path(self.tmp.name) / "core-fork-new"
+        done = self.fork(old.store.root, new)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        copied = module.Lab(new)
+        self.assertTrue(copied.status()["ok"])
+        self.assertEqual(copied.status()["checkpoints"], [])
+        self.assertEqual(self.file_hashes(old.store.root), before)
 
     def test_save_readback_verify_and_idempotent_retry(self):
         raw = self.fixture()

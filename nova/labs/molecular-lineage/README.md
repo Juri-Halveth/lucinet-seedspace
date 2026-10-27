@@ -36,9 +36,11 @@ This verifies the predecessor, copies `.nova`, checks exact journal prefixes,
 migrates derived analyses in the new copy using NOVA 2.1.2, and writes a
 `PREDECESSOR.json` receipt. The predecessor files remain unchanged. A fresh
 directory is required; the helper never replaces an existing workspace.
-The helper copies `.nova` only. It retains NOVA's sources and ledger, while the
-new lab's separate run/receipt index starts empty. To reopen earlier lab
-checkpoints through the interface, use their original lab workspace.
+Close active writers before forking. If the predecessor already contains lab
+history, its run bindings and checkpoint receipts are validated against the
+retained NOVA sources/ledger and copied byte for byte. Earlier checkpoints
+remain available for reopening and completed-request retry in the new copy.
+Invalid lab-history bindings stop the fork before the destination is created.
 
 ## Use
 
