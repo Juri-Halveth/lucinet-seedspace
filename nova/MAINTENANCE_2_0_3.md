@@ -43,10 +43,11 @@ checking within those trust anchors, not proof of complete history.
 
 ## Regression coverage
 
-`tests/test_workbench_maintenance.py` supplies twelve complementary methods:
+`tests/test_workbench_maintenance.py` supplies thirteen complementary methods:
 retraction after a corrupt document, model query limits across ATLAS/DEEP/BUILD,
 early explicit rejection, exact read bounds, manifest loss/reformatting,
-archive loss/reformatting and no silent rebinding, plus a synthetic legacy kit.
+archive loss/reformatting and no silent rebinding, plus a synthetic legacy kit
+and a guard against archiving reviving retracted text through the core search.
 The legacy kit passes while unchanged, fails after manifest replacement and
 passes after the exact original bytes are restored. On the incoming 2.0.2
 source that new legacy replacement check fails; the candidate repairs it.

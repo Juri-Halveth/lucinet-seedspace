@@ -166,6 +166,14 @@ class WorkbenchMaintenanceTests(unittest.TestCase):
         manifest.write_bytes(original)
         self.assertTrue(self.w.verify()["ok"])
 
+    def test_archiving_does_not_revive_retracted_source_in_core_search(self):
+        self.archive()
+        source = next(s for s in self.w.store.sources() if s["locator"] == "scene.json")
+        self.w.store.set_status(source["source_id"], "retracted", note="synthetic correction")
+        with patch("halveth_nova.workbench.controller.ADAPTER_BUNDLE_VERSION", "synthetic-next"):
+            self.w.compile_sources()
+        self.assertEqual(self.w.engine.search("scene", include_retracted=False), [])
+
 
 if __name__ == "__main__":
     unittest.main()
