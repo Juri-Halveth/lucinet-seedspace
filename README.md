@@ -40,3 +40,21 @@ Der [lokale Slot-Simulator](notebook-lab.html) setzt die Platzregeln als eigene 
 - Die Stimme ist eine lokale, vorformulierte Szenenreaktion auf den Ablageort. Die Seite liest keine Cookies, Kamera oder Mikrofon und ruft im Betrieb keine externe API auf.
 
 `blueprints.js` registriert die fünf Renderer; Daten werden nicht als fremder Code ausgeführt. `room-state.js` speichert Bauplan-ID, relative Position, Sichtbarkeit und Variantenindex. Die visuelle Browserfassung ist noch keine dreidimensionale Spielwelt.
+
+
+## NOVA Core · Research continuity runtime
+
+This repository now also contains [`nova/`](nova/), a reusable Python runtime for provenance-preserving research continuity. It stores exact source bytes by SHA-256, keeps superseded/retracted interpretations searchable without treating them as current, writes hash-chained Research Receipts, verifies continuation state and exports portable research snapshots.
+
+Quick start:
+
+```bash
+python nova/nova.py --version
+python nova/nova.py --workspace ./my-research init --name my-research
+python nova/nova.py --workspace ./my-research ingest ./notes
+python nova/nova.py --workspace ./my-research search "what did we already research?"
+python nova/nova.py --workspace ./my-research run "continue the current question" --mode FLOW --next-seed "next concrete test"
+python nova/nova.py --workspace ./my-research verify
+```
+
+See [`nova/README.md`](nova/README.md) for the full contract, CLI, zero-install launchers and integration pattern.
