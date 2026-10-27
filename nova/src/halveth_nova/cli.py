@@ -240,8 +240,17 @@ def main(argv: list[str] | None = None) -> int:
             file = Path(args.spec).resolve()
             if file.stat().st_size > 100000:
                 raise ValueError("BOUNTY_INPUT_LIMIT")
-            raw = file.read_bytes(); result = assess(strict_loads(raw.decode("utf-8")))
+            raw = file.read_bytes(); spec = strict_loads(raw.decode("utf-8"))
             source = store.ingest_bytes(store._locator_for(file, file), raw, tags=["bounty-impact-input"])
+            verified_evidence = set()
+            for ref in spec.get("evidence_refs", []):
+                try:
+                    stored = store.source_by_id(ref.get("id", ""))
+                except KeyError:
+                    continue
+                if stored.get("digest") == ref.get("digest"):
+                    verified_evidence.add(ref["id"])
+            result = assess(spec, verified_evidence=verified_evidence)
             record = store.ingest_bytes("derived/" + source["source_id"] + "/bounty-impact.json",
                 (canonical_json(result) + "\n").encode("utf-8"), tags=["bounty-impact-assessment"],
                 metadata={"parent_source_id": source["source_id"], "parent_digest": source["digest"], "state": result["state"]})
