@@ -174,7 +174,10 @@ def main(argv: list[str] | None = None) -> int:
             file = Path(args.spec).resolve()
             if file.stat().st_size > 1_000_000:
                 raise ValueError("ESSENCE_INPUT_LIMIT")
-            raw = file.read_bytes()
+            with file.open("rb") as stream:
+                raw = stream.read(1_000_001)
+            if len(raw) > 1_000_000:
+                raise ValueError("ESSENCE_INPUT_LIMIT")
             request = validate_request(strict_loads(raw.decode("utf-8")))
             source = store.ingest_bytes(store._locator_for(file, file), raw, tags=["essence-input"])
             if args.local_model:

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import copy
+import io
 import json
 import tempfile
 import unittest
 from pathlib import Path
+from contextlib import redirect_stdout, redirect_stderr
 from unittest.mock import patch
 
 from halveth_nova.workbench.controller import Workbench
@@ -30,6 +32,29 @@ def fixture():
 
 
 class EssenceTests(unittest.TestCase):
+    def test_cli_rejects_growth_before_ingestion_with_a_bounded_read(self):
+        from halveth_nova.cli import main
+        with tempfile.TemporaryDirectory() as root:
+            work = Workbench(root); work.engine.init("bounded-essence")
+            source = (Path(root) / "request.json").resolve()
+            source.write_bytes(b"{}")
+            original_open, reads = Path.open, []
+            class GrowingReader(io.BytesIO):
+                def read(self, size=-1):
+                    reads.append(size)
+                    return super().read(size)
+            def opening(path, *args, **kwargs):
+                if path == source and (args[0] if args else kwargs.get("mode")) == "rb":
+                    return GrowingReader(b"x" * 1_000_002)
+                return original_open(path, *args, **kwargs)
+            error = io.StringIO()
+            with patch.object(Path, "open", opening), redirect_stdout(io.StringIO()), redirect_stderr(error):
+                status = main(["--workspace", root, "essence-farm", str(source)])
+            self.assertEqual(status, 2)
+            self.assertIn("ESSENCE_INPUT_LIMIT", error.getvalue())
+            self.assertEqual(reads, [1_000_001])
+            self.assertEqual(work.store.sources(), [])
+
     def test_complete_pair_graph_and_false_friend_control(self):
         result = harvest(fixture())
         self.assertEqual(len(result["comparisons"]), 3)

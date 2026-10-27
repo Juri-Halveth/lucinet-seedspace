@@ -70,6 +70,26 @@ jobs:
           with tempfile.TemporaryDirectory() as tmp:
               for args in [['demo', '--node', 'node'], ['value-flow', 'nova/examples/value-flow.json'], ['verify']]:
                   subprocess.run([sys.executable, launcher, '--workspace', tmp, *args], check=True)
+      - name: Source-bound essence continuation
+        shell: python
+        run: |
+          import json, subprocess, sys, tempfile
+          from pathlib import Path
+          launcher = str(Path('nova/nova.py').resolve())
+          with tempfile.TemporaryDirectory() as tmp:
+              def run(*args):
+                  done = subprocess.run([sys.executable, '-X', 'utf8', launcher, '--workspace', tmp, *args],
+                                        check=True, capture_output=True, text=True, encoding='utf-8')
+                  return json.loads(done.stdout)
+              run('init', '--name', 'essence-ci')
+              first = run('essence-farm', 'nova/examples/essence-nova-reviewed.json')
+              farm = first['result']['essence_farms'][0]
+              assert len(farm['branches']) == 10
+              assert len(farm['comparisons']) == 45
+              assert len(farm['candidate_essences']) == 1
+              second = run('work', 'NOVA erinnert mich an frühere Spuren', '--mode', 'DEEP')
+              assert any(question['prior_occurrences'] for question in second['result']['unknowns'])
+              assert run('verify')['ok']
   media:
     runs-on: ubuntu-latest
     steps:

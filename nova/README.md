@@ -1,9 +1,24 @@
-# NOVA 2.0.3 · Research Workbench
+# NOVA 2.1.0 · Research Workbench
 
 Read a bounded source collection, recover earlier work, compare declared structures across names, run a countertest, and build a reusable program with a receipt. The continuity core remains available with its existing commands, including the published 1.2.1 integrity and locking fixes.
 
 The [2.0.3 maintenance notes](MAINTENANCE_2_0_3.md) describe the combined
 workbench repairs, legacy build verification and regression coverage.
+
+NOVA 2.1.0 adds source-bound association expansion and essence comparisons
+while retaining those repairs. Start with explicit source cards, inspect each
+quoted reading and its differences, and preserve the next unanswered question:
+
+```bash
+python nova/nova.py --workspace ./essence-demo init --name essence-demo
+python nova/nova.py --workspace ./essence-demo essence-farm nova/examples/essence-nova-reviewed.json
+python nova/nova.py --workspace ./essence-demo verify
+```
+
+The example is an analyst-authored comparison. An optional, explicitly chosen
+local model can propose its own readings from `essence-nova.json`; those outputs
+remain separate. Role matches are analogy candidates, and source-card URLs are
+declared pointers until separately checked. See [WORKBENCH.md](WORKBENCH.md#association-expansion-and-essence-farming).
 
 ```bash
 # Python 3.11+, no package installation for the base workbench
