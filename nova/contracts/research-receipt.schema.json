@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://halveth.example/contracts/nova-research-receipt-v1.json",
+  "title": "NOVA Research Receipt v1",
+  "type": "object",
+  "required": ["contract", "run_id", "created_at", "mode", "query", "input_sources", "claims", "open_questions", "artifacts", "relations_visible", "predecessor_run_id", "predecessor_entry_hash", "next_seed", "note"],
+  "properties": {
+    "contract": {"const": "halveth.nova.research-receipt.v1"},
+    "run_id": {"type": "string"},
+    "created_at": {"type": "string"},
+    "mode": {"enum": ["FLOW", "ATLAS", "DEEP", "BUILD"]},
+    "query": {"type": "string"},
+    "input_sources": {"type": "array"},
+    "claims": {"type": "array"},
+    "open_questions": {"type": "array", "items": {"type": "string"}},
+    "artifacts": {"type": "array", "items": {"type": "string"}},
+    "relations_visible": {"type": "array", "items": {"type": "string"}},
+    "predecessor_run_id": {"type": ["string", "null"]},
+    "predecessor_entry_hash": {"type": ["string", "null"]},
+    "next_seed": {"type": "string"},
+    "note": {"type": "string"}
+  }
+}

@@ -1,0 +1,3 @@
+A camera reports a possible object at 10:02.
+A second channel later repeats the camera report.
+The repetition is not a second independent observation.

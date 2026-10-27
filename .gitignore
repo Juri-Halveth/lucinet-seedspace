@@ -1,0 +1,13 @@
+# NOVA local workspace state
+.nova/
+
+# Python local/runtime noise
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Local exports
+*.zip
