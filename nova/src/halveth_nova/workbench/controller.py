@@ -155,8 +155,15 @@ class Workbench:
                 if "history_refs" in cached:
                     self._verify_history_refs(cached["history_refs"])
                 else:
-                    # One-time migration for pre-2.0.2 caches: bind any retained raw archives
-                    # to the current analysis record rather than silently trusting directory contents.
+                    # One-time migration for pre-2.0.2 caches. Preserve the exact legacy
+                    # current-cache bytes first, then bind all retained archives from the
+                    # migrated record so the migration itself does not erase history.
+                    legacy_bytes = path.read_bytes()
+                    historical = self.home / "analysis-history" / (cached["analysis_digest"] + ".json")
+                    if historical.exists() and historical.read_bytes() != legacy_bytes:
+                        raise ValueError("HISTORICAL_ANALYSIS_BYTES_CHANGED")
+                    if not historical.exists():
+                        atomic_write(historical, legacy_bytes)
                     cached["history_refs"] = self._history_refs(source["source_id"])
                     cached.pop("analysis_digest", None)
                     cached["analysis_digest"] = sha256_json(cached)
