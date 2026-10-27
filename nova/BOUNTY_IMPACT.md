@@ -13,7 +13,7 @@ FLAG
 → REPORT CANDIDATE
 ```
 
-It checks eight gates: declared scope, safe reproduction environment, repeatability, negative control, concrete security impact, bound root cause, remediation control and bound evidence references.
+It checks eight gates: confirmed scope, safe reproduction environment, repeatability, negative control, concrete security impact, bound root cause, remediation control and evidence references whose IDs and digests resolve to sources already stored in the same NOVA workspace.
 
 Main states:
 
@@ -30,7 +30,7 @@ Duplicate handling is intentionally narrow. NOVA hashes the declared invariant, 
 
 Reward data is context only. NOVA exposes a program ceiling only when a separate candidate severity and basis are supplied, and labels that value `PROGRAM_CONTEXT_NOT_PAYOUT_PREDICTION`.
 
-The assessor performs no target network access, no exploit execution and no report submission. `LIVE_PRODUCTION` is not a safe proof environment and is held rather than promoted.
+The assessor performs no target network access, no exploit execution and no report submission. `LIVE_PRODUCTION` is not a safe proof environment and is held rather than promoted. Merely typing an evidence ID/digest is also insufficient: the CLI resolves it against the existing NOVA source store before the evidence gate can pass.
 
 ## CLI
 
@@ -38,7 +38,7 @@ The assessor performs no target network access, no exploit execution and no repo
 python nova/nova.py --workspace ./research bounty-impact nova/examples/bounty-impact-tron-synthetic.json
 ```
 
-The example is a synthetic local fixture shaped around the public TRON DAO program policy. It is not a claim that TRON contains the synthetic bug.
+The example is a synthetic local fixture shaped around the public TRON DAO program policy. It is not a claim that TRON contains the synthetic bug, and its placeholder evidence references intentionally remain unverified until replaced by real source IDs/digests from the local NOVA workspace.
 
 ## Why these gates exist
 
