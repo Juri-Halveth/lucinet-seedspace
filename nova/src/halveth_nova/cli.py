@@ -65,6 +65,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--integration", choices=["lagefaden"])
     s.add_argument("--node", default="node", help="explicit local Node executable for the registered integration")
     s.add_argument("--build-spec", help="explicit pure JSON-function build specification and withheld cases")
+    s.add_argument("--essence-source", help="source ID of an ingested essence request; association cues also open a research plan")
+
+    s = sub.add_parser("essence-farm", help="expand an explicit source-card request, countertest abstractions and bind new seeds")
+    s.add_argument("spec")
+    s.add_argument("--mode", choices=["ATLAS", "DEEP", "BUILD"], default="BUILD")
+    s.add_argument("--local-model", help="explicit installed model to propose additional source-quoted readings")
 
     s = sub.add_parser("capabilities", help="show actually available adapters and local model inventory")
 
@@ -159,7 +165,37 @@ def main(argv: list[str] | None = None) -> int:
             build_spec = strict_loads(Path(args.build_spec).read_text(encoding="utf-8")) if args.build_spec else None
             emit(Workbench(args.workspace).run(args.query, mode=args.mode, pattern=pattern,
                                               model=args.local_model, max_sources=args.max_sources,
-                                              integration=args.integration, node=args.node, build_spec=build_spec))
+                                              integration=args.integration, node=args.node, build_spec=build_spec,
+                                              essence_source=args.essence_source))
+        elif args.command == "essence-farm":
+            from .workbench.essence import validate_request, expand_with_local_model
+            from .workbench.controller import Workbench
+            from .jsonutil import strict_loads, canonical_json
+            file = Path(args.spec).resolve()
+            if file.stat().st_size > 1_000_000:
+                raise ValueError("ESSENCE_INPUT_LIMIT")
+            with file.open("rb") as stream:
+                raw = stream.read(1_000_001)
+            if len(raw) > 1_000_000:
+                raise ValueError("ESSENCE_INPUT_LIMIT")
+            request = validate_request(strict_loads(raw.decode("utf-8")))
+            source = store.ingest_bytes(store._locator_for(file, file), raw, tags=["essence-input"])
+            if args.local_model:
+                compiled = expand_with_local_model(request, model=args.local_model)
+                receipt = store.ingest_bytes("derived/" + source["source_id"] + "/essence-compiler.json",
+                    (canonical_json(compiled["compiler"]) + "\n").encode("utf-8"), tags=["essence-compiler"],
+                    metadata={"parent_source_id": source["source_id"], "parent_digest": source["digest"], "state": "MODEL_INFERRED"})
+                if compiled["request"] is None:
+                    store.set_status(receipt["source_id"], "historical", note="rejected model derivation; exact response retained")
+                    emit({"state": "REJECTED_MODEL_DERIVATION", "record": receipt,
+                          "reason": compiled["compiler"]["rejection"]})
+                    return 2
+                source = store.ingest_bytes("derived/" + source["source_id"] + "/essence-expanded.json",
+                    (canonical_json(compiled["request"]) + "\n").encode("utf-8"), tags=["essence-input"],
+                    metadata={"parent_source_id": source["source_id"], "parent_digest": source["digest"],
+                              "compiler_source_id": receipt["source_id"], "state": "MODEL_INFERRED"})
+            emit(Workbench(args.workspace).run(request["seed"]["text"], mode=args.mode,
+                                               essence_source=source["source_id"]))
         elif args.command == "capabilities":
             from .workbench.adapters import capabilities
             from .workbench.local_model import available_models

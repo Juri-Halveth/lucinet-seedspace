@@ -16,13 +16,14 @@ from .graph import CONTRACT, validate_graph
 
 MAX_BYTES = 8_000_000
 MAX_TEXT = 250_000
-ADAPTER_BUNDLE_VERSION = "2.0.1"
+ADAPTER_BUNDLE_VERSION = "2.1.0"
 
 
 def capabilities() -> dict:
     import importlib.util
     import shutil
     return {"text": True, "python_ast": True, "declared_graph": True, "docx": True,
+            "essence_farm": "SOURCE_CARDS_AND_DECLARED_ABSTRACTIONS",
             "wav_signal": True, "image_pixels": importlib.util.find_spec("PIL") is not None,
             "pdf_text": importlib.util.find_spec("pypdf") is not None,
             "image_ocr": "EXPLICIT_LOCAL_VISION_DERIVATION", "video_frames": importlib.util.find_spec("av") is not None,
@@ -124,6 +125,10 @@ def extract(locator: str, data: bytes) -> dict:
                 from .value_flow import declared_questions
                 result["unknowns"] = declared_questions(value)
                 result["adapter"] = "declared-value-inquiry"
+            elif isinstance(value, dict) and value.get("contract") == "nova.essence-request.v1":
+                from .essence import validate_request
+                result["essence_request"] = validate_request(value)
+                result["adapter"] = "declared-essence-request"
         if suffix == ".py":
             result["adapter"] = "python-ast"
             tree = ast.parse(text)

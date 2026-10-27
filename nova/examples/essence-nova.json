@@ -1,0 +1,41 @@
+{
+  "contract": "nova.essence-request.v1",
+  "seed": {
+    "text": "NOVA",
+    "kind": "NAME",
+    "context": "NOVA erinnert mich an StarCraft, besondere Fähigkeiten und Supernovas. Welche verschiedenen Lesarten, Strukturen und neuen Forschungsfragen enthält diese Verbindung?"
+  },
+  "sources": [
+    {
+      "id": "nasa_word",
+      "title": "NASA Hubble: Stellar Explosions — bounded paraphrase, reviewed 2026-10-27",
+      "origin": "https://science.nasa.gov/mission/hubble/science/science-behind-the-discoveries/hubble-stellar-explosions/",
+      "text": "Der astronomische Name Nova geht auf das lateinische Wort für neu zurück. Das plötzliche Aufleuchten wurde früher als Erscheinen eines neuen Sterns verstanden. Die heutige Beschreibung betrifft einen Ausbruch eines bereits vorhandenen Sternsystems. Namensgeschichte, physischer Vorgang und Wahrnehmung durch Beobachter sind verschiedene Gegenstände. Diese Karte ist eine redaktionelle Zusammenfassung der verlinkten NASA-Seite, kein vollständiger Rohabruf."
+    },
+    {
+      "id": "nasa_types",
+      "title": "NASA: What's a Nova? — bounded paraphrase, reviewed 2026-10-27",
+      "origin": "https://science.nasa.gov/universe/whats-a-nova-inside-the-chaos-of-erupting-and-exploding-stars/",
+      "text": "Eine klassische Nova ist ein thermonuklearer Ausbruch auf einem Weißen Zwerg in einem Doppelsternsystem. Material vom Begleitstern sammelt sich auf seiner Oberfläche. Der Weiße Zwerg bleibt dabei erhalten; weitere Ausbrüche sind möglich. Als rekurrent werden Systeme mit mindestens zwei beobachteten Nova-Ausbrüchen bezeichnet. Supernovae umfassen andere explosive Vorgänge, darunter Kernkollaps und thermonukleare Explosionen vom Typ Ia. Gleiches Namenselement und starke Helligkeitsänderung bedeuten keinen identischen Mechanismus. Diese Karte fasst die verlinkte NASA-Seite redaktionell zusammen."
+    },
+    {
+      "id": "blizzard_ghost",
+      "title": "Blizzard: Ghost – Spectres — bounded paraphrase, reviewed 2026-10-27",
+      "origin": "https://news.blizzard.com/en-us/article/3608310/thrilling-new-starcraft-novel-by-nate-kenyon",
+      "text": "Blizzards Beschreibung der fiktiven Ghosts verbindet angeborenes psionisches Potenzial mit verstärkender Technologie und Training. Nova Terra ermittelt nach verschwundenen Kameraden. Im Verlauf der Untersuchung tauchen schmerzhafte Erinnerungen aus der Zeit vor ihrer Ghost-Rolle auf. Der Text stellt einen möglichen Zusammenhang zwischen ihrem früheren Leben und den verschwundenen Agenten her. Das sind Aussagen über eine Erzählung. Diese Karte ist eine redaktionelle Zusammenfassung der verlinkten Herstellerquelle."
+    },
+    {
+      "id": "blizzard_name",
+      "title": "Blizzard: Nova Covert Ops Launching Soon — bounded paraphrase, reviewed 2026-10-27",
+      "origin": "https://news.blizzard.com/en-us/article/20066446/nova-covert-ops-launching-soon",
+      "text": "Die Spielfigur wird von Blizzard als November ‚Nova‘ Terra vorgestellt. Die Kampagne umfasst gefährliche Missionen und experimentelle Technik. Die Benennung Nova ist hier an eine Figur und ihren Namen gebunden. Diese Quelle erklärt keine lateinische Entwurfsabsicht der Autoren und belegt keine absichtlich gewählte Bedeutung Neue Erde. Diese Karte ist eine redaktionelle Zusammenfassung mit ausdrücklich offener Frage zur Namensherkunft."
+    },
+    {
+      "id": "project_prompt",
+      "title": "NOVA 2.0.1 operating prompt — committed project baseline",
+      "origin": "https://github.com/Juri-Halveth/lucinet-seedspace/blob/ec25eee3ce97b3504d261167258b0bea1802a2bb/nova/NOVA_CORE_PROMPT.md",
+      "text": "NOVA 2.0.1 fordert die Suche nach früheren Quellen, Status- und Digestprüfung, getrennte Korrekturen sowie offene W-Fragen. FLOW, ATLAS, DEEP und BUILD sind benannte Arbeitsmodi. Forschungsläufe hinterlassen einen Beleg und einen nächsten Seed. Die Fassung bindet Wiederaufnahme an erhaltene Quellen. Eine nützliche Analogie zur Erinnerung benötigt weiterhin eine explizite Abstraktion; Software-Suche und menschliches Erinnern sind verschiedene Vorgänge."
+    }
+  ],
+  "branches": []
+}
