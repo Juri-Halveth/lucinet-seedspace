@@ -43,6 +43,19 @@ parsing into an explicit failed derivation, rejects oversized model query
 patterns before structural matching, binds the final BUILD manifest, and keeps
 retained analysis-history bytes reachable through integrity-bound references.
 
+
+## Bounty impact gate
+
+`bounty-impact` separates a suspicious flag from a reproducible, impact-bound report
+candidate without executing an exploit or touching a target network:
+
+```bash
+python nova/nova.py --workspace ./research bounty-impact nova/examples/bounty-impact-tron-synthetic.json
+```
+
+See [BOUNTY_IMPACT.md](BOUNTY_IMPACT.md) for the gates, duplicate model, safety boundary
+and the synthetic TRON-policy-shaped example.
+
 ## Preserved continuity core
 
 NOVA Core is a small, dependency-free Python runtime for **finding sources, preserving their exact bytes and status, writing research receipts, and resuming later without silently rewriting history**.
