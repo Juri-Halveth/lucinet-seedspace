@@ -271,7 +271,7 @@ class Workbench:
 
     def run(self, query: str, *, mode: str = "FLOW", pattern: dict | None = None,
             model: str | None = None, max_sources: int = 500, integration: str | None = None,
-            node: str = "node", build_spec: dict | None = None) -> dict:
+            node: str = "node", build_spec: dict | None = None, essence_source: str | None = None) -> dict:
         self.store.require()
         if not isinstance(query, str) or not query.strip() or len(query) > 4000:
             raise ValueError("INVALID_TASK")
@@ -305,6 +305,36 @@ class Workbench:
                   "model_compilation": None, "countertests": [], "build": None,
                   "inferred_graphs": [], "inferred_structural_matches": [], "recovered_runs": [], "relation_records": [],
                   "authority": "LOCAL_DERIVATION_ONLY", "action_requests": [], "artifacts": []}
+        from .essence import detect_association, harvest, plan
+        cue = detect_association(query)
+        result["association_cue"] = cue
+        result["essence_farms"] = []
+        requests = [row for row in rows if row["analysis"].get("essence_request") and
+                    self.effective_status(row["source_id"], statuses, source_map) == "active"]
+        if essence_source:
+            requests = [row for row in requests if row["source_id"] == essence_source]
+            if not requests:
+                raise ValueError("ACTIVE_ESSENCE_SOURCE_REQUIRED")
+        elif cue["state"] == "LEXICAL_CUE_FOUND":
+            terms = set(re.findall(r"\w+", query.casefold()))
+            requests = [row for row in requests if terms.intersection(re.findall(
+                r"\w+", row["analysis"]["essence_request"]["seed"]["text"].casefold()))]
+        else:
+            requests = []
+        for row in requests:
+            farm = harvest(row["analysis"]["essence_request"],
+                request_ref={"source_id": row["source_id"], "digest": row["parent_digest"]})
+            farm["producer_state"] = row["source"].get("metadata", {}).get("state", "SUPPLIED_READING")
+            result["essence_farms"].append(farm)
+        if not requests and cue["state"] == "LEXICAL_CUE_FOUND":
+            result["essence_farms"].append(plan(query))
+        if result["essence_farms"]:
+            result["stages"].append("association_expand_compare_distill")
+            for farm in result["essence_farms"]:
+                result["unknowns"].extend(dict(question) for question in farm["new_seeds"])
+            result["countertests"].extend({"operator": "reverse_declared_essence_transition",
+                "candidate_id": c["id"], "results": c["countertests"], "meaning": "declared roles, not a physical test"}
+                for farm in result["essence_farms"] for c in farm["candidate_essences"])
         if model:
             from .local_model import compile_concepts
             if pattern is None:
@@ -380,6 +410,8 @@ class Workbench:
                     result["recovered_runs"].append({"run_id": old["run_id"], "task": old["task"],
                                                       "score": score, "kind": "DERIVED_PRIOR_WORK"})
             result["recovered_runs"].sort(key=lambda r: (-r["score"], r["run_id"]))
+        if result["unknowns"]:
+            prior = self.prior_results()
             for unknown in result["unknowns"]:
                 key = unknown_key(unknown)
                 occurrences = [{"run_id": old["run_id"], "source_state_digest": old["input_state_digest"]}
@@ -431,6 +463,7 @@ class Workbench:
                                "unknown_ids": sorted({u["unknown_id"] for u in result["unknowns"]}),
                                "selected_unknown_id": (result.get("selected_unknown") or {}).get("unknown_id"),
                                "next_action": (result.get("selected_unknown") or {}).get("resolver"),
+                               "essence_request_refs": [f["request_ref"] for f in result["essence_farms"] if f["request_ref"]],
                                "authority_inherited": False}
         with self.store.write_lock():
             if self.source_state() != source_state:
@@ -488,6 +521,20 @@ class Workbench:
             for result in results:
                 if result.get("contract") != CONTRACT:
                     raise ValueError("INVALID_RESULT_CONTRACT")
+                from .essence import harvest, plan
+                for farm in result.get("essence_farms", []):
+                    ref = farm.get("request_ref")
+                    if ref:
+                        source = sources[ref["source_id"]]
+                        if source["digest"] != ref["digest"]:
+                            raise ValueError("ESSENCE_REQUEST_BINDING_CHANGED")
+                        expected = harvest(strict_loads(self.read_object(source).decode("utf-8")), request_ref=ref,
+                                           operator_version=farm["operator_version"])
+                        expected["producer_state"] = source.get("metadata", {}).get("state", "SUPPLIED_READING")
+                    else:
+                        expected = plan(result["task"], operator_version=farm["operator_version"])
+                    if farm != expected:
+                        raise ValueError("ESSENCE_DERIVATION_CHANGED")
                 expected_relations = []
                 for item in result["graphs"] + result.get("inferred_graphs", []):
                     matching = [r for r in result.get("relation_records", []) if

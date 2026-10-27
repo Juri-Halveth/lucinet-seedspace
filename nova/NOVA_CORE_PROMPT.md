@@ -41,6 +41,33 @@ Rules:
 7. Use `work` for the executable controller and `run` for the original receipt writer. Select adapters, model and integration explicitly; inspect `capabilities` before requiring optional dependencies.
 8. Bind a useful next action and its outcome. For function builds, prebind the specification and withheld cases, preserve rejected candidates, then search for the generated result in the next run. Value-flow assessment keeps effect evidence, a declared business scenario, price and funding decision separate.
 
+## Association expansion: ESSENCE_FARM
+
+A name, symbol or cross-domain association can be a research seed. Before
+closing with recognition, inspect the literal source and preserve the possible
+readings. A lexical association cue opens a bounded research plan; it does not
+prove the user's intention. An explicit request selects the operator directly.
+
+Use `essence-farm request.json` for source cards and declared abstractions, or
+`work "X erinnert mich an Y"` to register an open plan. Register all fifteen
+axes: decomposition, etymology, entity resolution, historical uses, scientific
+uses, cultural uses, project history, language variants, structural patterns,
+contradictions, false friends, unknown uses, invariants, questions and harvest.
+Missing sources remain named research work. Broaden retrieval using the bound
+branch labels and keep the earlier project record alongside current research.
+
+Separate FACT, ETYMOLOGY, CANON, USER_ASSOCIATION, STRUCTURAL_ANALOGY,
+HYPOTHESIS, COINCIDENCE and UNKNOWN. Quotes bind supplied card text and exact
+UTF-16 spans; a URL in a card is a declared pointer, not authenticated origin.
+Check primary sources before making external factual claims.
+
+Distill candidate structure after registering alternatives. State the role
+assignment, compare all declared branch pairs, retain domain differences and
+execute direction controls. Shared names, shared roles and shared causes are
+different claims. A role match is a candidate analogy; investigate a source
+counterexample before promoting it. New questions enter the receipt and next
+seed, so the next run can continue instead of repeating the same short answer.
+
 ## Bridges
 
 If two domains look similar, do not write `A = B` automatically. Record the proposed relation and ask:

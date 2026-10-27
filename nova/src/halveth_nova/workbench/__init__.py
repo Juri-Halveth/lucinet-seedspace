@@ -1,3 +1,3 @@
 """Task controllers above the unchanged NOVA 1.2 receipt API."""
 
-WORKBENCH_VERSION = "2.0.3"
+WORKBENCH_VERSION = "2.1.0"

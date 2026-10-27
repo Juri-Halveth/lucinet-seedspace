@@ -1,4 +1,4 @@
-# NOVA 2.0.1: from source collection to reusable work
+# NOVA 2.1.0: from source collection to reusable work
 
 NOVA combines the existing exact-byte source store and receipt ledger with
 bounded source consumers, structural queries, work controllers and executable
@@ -46,6 +46,49 @@ within declared graphs. Cross-domain matches are model structure matches; they
 do not establish physical equivalence or causal identity. Query patterns have
 at most eight nodes; target graphs at most 256; search budgets remain visible.
 Use `--pattern path/to/concept-graph.json` for an explicit structural query.
+
+## Association expansion and essence farming
+
+```bash
+python nova/nova.py --workspace ./essence-demo init --name essence-demo
+python nova/nova.py --workspace ./essence-demo essence-farm nova/examples/essence-nova.json --local-model qwen2.5:14b
+python nova/nova.py --workspace ./essence-demo work "NOVA erinnert mich an frühere Spuren" --mode DEEP
+python nova/nova.py --workspace ./essence-demo verify
+```
+
+The first command after initialization compiles supplied source cards into
+quoted readings with an explicitly selected, already installed local model.
+It generates a portable HTML view, compares every branch pair and computes
+candidate analogies from shared adjacent role IDs. The source-card input,
+exact model response and expanded request are retained separately. Invalid
+model quotes are rejected and the rejected response remains historical.
+Without `--local-model`, only supplied branches are compared; empty branches
+produce an explicit research plan. The runtime does not browse or fetch URLs.
+An agent can research primary sources, add cards and continue from that plan.
+
+`work` recognizes a bounded lexical association cue in German or English and
+opens fifteen axes, even when no matching source cards exist. This is a routing
+heuristic rather than a claim about the user's intention. Explicit selection
+uses `work QUERY --essence-source SOURCE_ID`. Retracted or superseded parents
+cannot reenter as current input. New questions and request references enter
+the normal receipt and continuation seed; previous results remain searchable.
+
+Each quote binds all exact UTF-16 occurrences in a supplied card, its text
+digest and JSON field address. The card's origin URL remains a declared
+pointer; a user or agent must separately verify its source. Identical role IDs
+are declared abstractions and do not prove a shared mechanism, common origin,
+semantic correctness or independent evidence. Domain differences, direction
+controls, missing axes and falsifiers stay in the viewer and JSON result.
+
+The included NOVA example contains short editorial source cards for NASA,
+Blizzard and the committed project prompt. Its empty branch list is deliberate:
+the actual local compiler proposes readings instead of receiving a prefilled
+answer. Other words and domains use the same request contract.
+
+`essence-nova-reviewed.json` is the separate analyst-authored comparison input,
+including differences and open questions. It is not presented as an autonomous
+model result. Operator 1.0.1 binds question identity to seed, kind, branch/domain
+and exact question; older 1.0.0 receipts retain their original verifier behavior.
 
 ## Local concept inference and a new executable function
 
