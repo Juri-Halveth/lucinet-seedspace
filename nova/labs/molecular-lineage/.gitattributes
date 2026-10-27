@@ -1,0 +1,8 @@
+*.mjs text eol=lf
+*.py text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+data/sources.json text eol=lf
+# Retained upstream response bodies must survive Windows checkout byte-exactly.
+data/pubchem-*.json -text
