@@ -145,6 +145,48 @@ class IntegrityRegressions(unittest.TestCase):
             self.engine.store.export_zip(self.engine.store.config_path)
         self.assertEqual(self.engine.store.config_path.read_bytes(), config)
 
+    def test_export_rejects_output_symlink_without_overwriting_its_target(self):
+        self.source()
+        victim = self.root / "other-file.txt"
+        victim.write_bytes(b"preserve this file")
+        target = self.root / "snapshot.zip"
+        try:
+            target.symlink_to(victim)
+        except (OSError, NotImplementedError) as error:
+            self.skipTest(f"file symlinks unavailable: {error}")
+        with self.assertRaisesRegex(ValueError, "must not be a symlink"):
+            self.engine.store.export_zip(target)
+        self.assertEqual(victim.read_bytes(), b"preserve this file")
+        self.assertTrue(target.is_symlink())
+
+    def test_export_rejects_symlink_inside_workspace_to_external_file(self):
+        self.source()
+        victim = self.root / "external-file.txt"
+        victim.write_bytes(b"preserve this file")
+        target = self.engine.store.nova / "alias.zip"
+        try:
+            target.symlink_to(victim)
+        except (OSError, NotImplementedError) as error:
+            self.skipTest(f"file symlinks unavailable: {error}")
+        with self.assertRaises(ValueError):
+            self.engine.store.export_zip(target)
+        self.assertEqual(victim.read_bytes(), b"preserve this file")
+        self.assertTrue(target.is_symlink())
+
+    def test_export_rejects_external_symlink_to_workspace_config(self):
+        self.source()
+        victim = self.engine.store.config_path
+        original = victim.read_bytes()
+        target = self.root / "config-alias.zip"
+        try:
+            target.symlink_to(victim)
+        except (OSError, NotImplementedError) as error:
+            self.skipTest(f"file symlinks unavailable: {error}")
+        with self.assertRaises(ValueError):
+            self.engine.store.export_zip(target)
+        self.assertEqual(victim.read_bytes(), original)
+        self.assertTrue(target.is_symlink())
+
     def test_export_rejects_target_inside_linked_nova_directory(self):
         workspace = self.root / "linked-workspace"
         backing = self.root / "linked-data"

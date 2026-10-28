@@ -498,10 +498,15 @@ class NovaStore:
     def export_zip(self, target: Path | str) -> dict[str, Any]:
         import zipfile
         self.require()
-        target = Path(target).resolve()
+        requested = Path(target)
+        # Resolve the parent for the workspace boundary, but replace the final
+        # directory entry itself rather than following a planted file symlink.
+        target = requested.parent.resolve() / requested.name
         nova_anchor = self.nova.resolve()
         if target == nova_anchor or nova_anchor in target.parents:
             raise ValueError("export target must be outside .nova")
+        if target.is_symlink():
+            raise ValueError("export target must not be a symlink")
         target.parent.mkdir(parents=True, exist_ok=True)
         with self.write_lock():
             verification = self.verify()
