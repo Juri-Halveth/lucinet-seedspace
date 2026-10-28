@@ -223,6 +223,100 @@ class IntegrityRegressions(unittest.TestCase):
         self.assertTrue(any(row.get("skipped") == "MAX_BYTES" for row in rows))
         self.assertEqual(self.engine.search("alpha")[0]["locator"], "input/small.txt")
 
+    def test_directory_ingest_skips_file_symlink_and_keeps_regular_sibling(self):
+        folder = self.root / "input"
+        folder.mkdir()
+        (folder / "ordinary.txt").write_bytes(b"ordinary source")
+        private = self.root / "private.txt"
+        private.write_bytes(b"outside marker")
+        link = folder / "alias.txt"
+        try:
+            link.symlink_to(private)
+        except (OSError, NotImplementedError) as error:
+            self.skipTest(f"file symlinks unavailable: {error}")
+        rows = self.engine.ingest(folder)
+        self.assertTrue(any(row.get("skipped") == "SYMLINK_OR_OUTSIDE_ROOT" for row in rows))
+        self.assertEqual([row["locator"] for row in self.engine.store.sources()], ["input/ordinary.txt"])
+        self.assertFalse((self.engine.store.objects / sha256_bytes(private.read_bytes())).exists())
+
+    def test_directory_ingest_does_not_traverse_linked_directory(self):
+        folder = self.root / "input"
+        outside = self.root / "outside"
+        folder.mkdir()
+        outside.mkdir()
+        (folder / "ordinary.txt").write_bytes(b"ordinary source")
+        (outside / "private.txt").write_bytes(b"outside marker")
+        link = folder / "alias"
+        if os.name == "nt":
+            result = subprocess.run(["cmd.exe", "/d", "/c", "mklink", "/J", str(link), str(outside)],
+                                    capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            self.assertEqual(result.returncode, 0, result.stderr)
+        else:
+            link.symlink_to(outside, target_is_directory=True)
+        try:
+            self.engine.ingest(folder)
+            self.assertEqual([row["locator"] for row in self.engine.store.sources()], ["input/ordinary.txt"])
+            self.assertFalse((self.engine.store.objects / sha256_bytes(b"outside marker")).exists())
+        finally:
+            if os.name == "nt":
+                os.rmdir(link)
+            else:
+                link.unlink()
+
+    def test_directory_ingest_reports_unreadable_subtree_and_keeps_sibling(self):
+        folder = self.root / "input"
+        unreadable = folder / "unreadable"
+        unreadable.mkdir(parents=True)
+        (folder / "ordinary.txt").write_bytes(b"ordinary source")
+        original = os.scandir
+        def denied(path):
+            if Path(path) == unreadable:
+                raise PermissionError("test-only denied directory")
+            return original(path)
+        with patch.object(os, "scandir", denied):
+            rows = self.engine.ingest(folder)
+        self.assertTrue(any(row.get("skipped") == "UNREADABLE_DIRECTORY" for row in rows))
+        self.assertEqual([row["locator"] for row in self.engine.store.sources()], ["input/ordinary.txt"])
+
+    def test_directory_ingest_rechecks_parent_after_open(self):
+        folder = self.root / "input"
+        safe = folder / "sub"
+        backup = folder / "safe-sub"
+        outside = self.root / "outside"
+        safe.mkdir(parents=True)
+        outside.mkdir()
+        candidate = safe / "candidate.txt"
+        candidate.write_bytes(b"safe bytes")
+        (outside / "candidate.txt").write_bytes(b"outside marker")
+        original = Path.open
+        swapped = False
+        def swap_before_open(path, *args, **kwargs):
+            nonlocal swapped
+            if path == candidate and args and args[0] == "rb":
+                safe.rename(backup)
+                if os.name == "nt":
+                    result = subprocess.run(["cmd.exe", "/d", "/c", "mklink", "/J", str(safe), str(outside)],
+                                            capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                else:
+                    safe.symlink_to(outside, target_is_directory=True)
+                swapped = True
+            return original(path, *args, **kwargs)
+        try:
+            with patch.object(Path, "open", swap_before_open):
+                rows = self.engine.ingest(folder)
+            self.assertTrue(swapped)
+            self.assertTrue(any(row.get("skipped") == "SYMLINK_OR_OUTSIDE_ROOT" for row in rows))
+            self.assertEqual(self.engine.store.sources(), [])
+            self.assertFalse((self.engine.store.objects / sha256_bytes(b"outside marker")).exists())
+        finally:
+            if swapped:
+                if os.name == "nt":
+                    os.rmdir(safe)
+                else:
+                    safe.unlink()
+                backup.rename(safe)
+
     def test_ingest_also_bounds_a_read_if_file_grows_after_stat(self):
         source = self.root / "grow.txt"
         source.write_bytes(b"a")

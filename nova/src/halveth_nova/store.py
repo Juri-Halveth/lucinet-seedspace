@@ -5,6 +5,7 @@ import hashlib
 import json
 import mimetypes
 import os
+import stat
 import tempfile
 import time
 from contextlib import contextmanager
@@ -23,6 +24,39 @@ RESUME_CONTRACT = "halveth.nova.resume.v1"
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _link_or_reparse(path: Path) -> bool:
+    try:
+        entry = path.lstat()
+    except OSError:
+        return True
+    return stat.S_ISLNK(entry.st_mode) or bool(
+        getattr(entry, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    )
+
+
+def _discovered_file_in_root(file: Path, root: Path) -> bool:
+    try:
+        relative = file.relative_to(root)
+        current = root
+        for part in relative.parts:
+            current = current / part
+            if _link_or_reparse(current):
+                return False
+        resolved = file.resolve(strict=True)
+        return resolved.is_relative_to(root) and not {part.casefold() for part in resolved.parts} & {".nova", ".git"}
+    except (OSError, ValueError):
+        return False
+
+
+def _opened_discovered_file_matches(file: Path, root: Path, opened: os.stat_result) -> bool:
+    if not _discovered_file_in_root(file, root):
+        return False
+    try:
+        return os.path.samestat(opened, os.lstat(file))
+    except OSError:
+        return False
 
 
 def atomic_write(path: Path, data: bytes) -> None:
@@ -219,26 +253,65 @@ class NovaStore:
         metadata = dict(metadata or {})
         if not p.exists():
             raise FileNotFoundError(p)
-        if p.is_dir():
-            files = sorted(x for x in p.rglob("*") if x.is_file() and ".nova" not in x.parts and ".git" not in x.parts)
+        directory_input = p.is_dir()
+        discovery_skips: list[dict[str, Any]] = []
+        if directory_input:
+            files = []
+            if not {part.casefold() for part in p.parts} & {".nova", ".git"}:
+                pending = [p]
+                while pending:
+                    directory = pending.pop()
+                    try:
+                        with os.scandir(directory) as entries:
+                            for entry in entries:
+                                if entry.name.casefold() in {".nova", ".git"}:
+                                    continue
+                                child = Path(entry.path)
+                                if _link_or_reparse(child):
+                                    files.append(child)
+                                elif entry.is_dir(follow_symlinks=False):
+                                    pending.append(child)
+                                elif entry.is_file(follow_symlinks=False):
+                                    files.append(child)
+                    except OSError:
+                        discovery_skips.append({"locator": self._locator_for(directory, p),
+                                                "skipped": "UNREADABLE_DIRECTORY"})
+            files.sort()
         else:
             files = [p]
-        results: list[dict[str, Any]] = []
+        results: list[dict[str, Any]] = discovery_skips
         with self.write_lock():
             for f in files:
                 locator = self._locator_for(f, p)
-                size = f.stat().st_size
-                if size > max_bytes:
-                    results.append({"locator": locator, "skipped": "MAX_BYTES", "bytes": size})
+                if directory_input and not _discovered_file_in_root(f, p):
+                    results.append({"locator": locator, "skipped": "SYMLINK_OR_OUTSIDE_ROOT"})
                     continue
+                if not directory_input:
+                    size = f.stat().st_size
+                    if size > max_bytes:
+                        results.append({"locator": locator, "skipped": "MAX_BYTES", "bytes": size})
+                        continue
                 with f.open("rb") as source:
+                    if directory_input:
+                        opened = os.fstat(source.fileno())
+                        if not _opened_discovered_file_matches(f, p, opened):
+                            results.append({"locator": locator, "skipped": "SYMLINK_OR_OUTSIDE_ROOT"})
+                            continue
+                        size = opened.st_size
+                        if size > max_bytes:
+                            results.append({"locator": locator, "skipped": "MAX_BYTES", "bytes": size})
+                            continue
                     data = source.read(max_bytes + 1)
+                    if directory_input and not _opened_discovered_file_matches(f, p, opened):
+                        results.append({"locator": locator, "skipped": "SYMLINK_OR_OUTSIDE_ROOT"})
+                        continue
                 if len(data) > max_bytes:
-                    results.append({"locator": locator, "skipped": "MAX_BYTES", "bytes": max(len(data), f.stat().st_size)})
+                    results.append({"locator": locator, "skipped": "MAX_BYTES",
+                                    "bytes": max(len(data), size if directory_input else f.stat().st_size)})
                     continue
                 rec, created = self._record_source(locator, data, tags, metadata)
                 results.append({**rec, "created": created})
-        return results
+        return sorted(results, key=lambda row: row["locator"])
 
     def ingest_bytes(self, locator: str, data: bytes, *, tags: list[str] | None = None, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
         self.require()
