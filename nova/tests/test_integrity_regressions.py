@@ -138,6 +138,36 @@ class IntegrityRegressions(unittest.TestCase):
             for row in result["manifest"]["files"]:
                 self.assertEqual(sha256_bytes(archive.read(row["path"])), row["sha256"])
 
+    def test_export_excludes_unverified_workspace_files_and_objects(self):
+        self.source()
+        extra = self.engine.store.nova / "private-note.txt"
+        extra.write_text("synthetic private note", encoding="utf-8")
+        orphan = self.engine.store.objects / ("f" * 64)
+        orphan.write_bytes(b"unreferenced synthetic bytes")
+        target = self.root / "snapshot.zip"
+        result = self.engine.store.export_zip(target)
+        names = {row["path"] for row in result["manifest"]["files"]}
+        self.assertNotIn(".nova/private-note.txt", names)
+        self.assertNotIn(".nova/objects/" + "f" * 64, names)
+        with zipfile.ZipFile(target) as archive:
+            self.assertNotIn(".nova/private-note.txt", archive.namelist())
+            self.assertNotIn(".nova/objects/" + "f" * 64, archive.namelist())
+
+    def test_export_rejects_linked_registered_object(self):
+        source = self.source()
+        object_path = self.engine.store.objects / source["digest"]
+        original = object_path.read_bytes()
+        backup = self.root / "object-backup"
+        backup.write_bytes(original)
+        object_path.unlink()
+        try:
+            object_path.symlink_to(backup)
+        except (OSError, NotImplementedError) as error:
+            object_path.write_bytes(original)
+            self.skipTest(f"file symlinks unavailable: {error}")
+        with self.assertRaisesRegex(ValueError, "linked workspace entries"):
+            self.engine.store.export_zip(self.root / "snapshot.zip")
+
     def test_export_cannot_overwrite_its_own_workspace(self):
         self.source()
         config = self.engine.store.config_path.read_bytes()

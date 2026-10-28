@@ -497,6 +497,21 @@ class NovaStore:
 
     def export_zip(self, target: Path | str) -> dict[str, Any]:
         import zipfile
+
+        def linked(path: Path) -> bool:
+            if path.is_symlink():
+                return True
+            try:
+                mode = path.lstat()
+            except FileNotFoundError:
+                return False
+            return bool(getattr(mode, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0))
+
+        metadata = [self.config_path, self.sources_path, self.source_events_path,
+                    self.relations_path, self.ledger_path, self.resume_path]
+        for path in [self.nova, self.objects, self.lock_path, *metadata]:
+            if linked(path):
+                raise ValueError("export source must not contain linked workspace entries")
         self.require()
         requested = Path(target)
         # Resolve the parent for the workspace boundary, but replace the final
@@ -509,10 +524,18 @@ class NovaStore:
             raise ValueError("export target must not be a symlink")
         target.parent.mkdir(parents=True, exist_ok=True)
         with self.write_lock():
+            source_rows = self.sources()
+            objects = sorted({self.objects / row["digest"] for row in source_rows
+                              if isinstance(row.get("digest"), str)
+                              and len(row["digest"]) == 64
+                              and all(c in "0123456789abcdef" for c in row["digest"])})
+            for path in objects:
+                if linked(path):
+                    raise ValueError("export source must not contain linked workspace entries")
             verification = self.verify()
             if not verification["ok"]:
                 raise RuntimeError("workspace verification failed before export: " + "; ".join(verification["errors"]))
-            files = sorted(p for p in self.nova.rglob("*") if p.is_file() and p != self.lock_path)
+            files = sorted(p for p in [*metadata, *objects] if p.is_file())
             resume = self.read_resume()
             config = self.read_config()
             manifest = {"contract": "halveth.nova.export.v1", "workspace": config["name"], "state_at": (resume or config)["updated_at" if resume else "created_at"], "files": []}
