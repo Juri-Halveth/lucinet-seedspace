@@ -67,6 +67,15 @@ erreichbar: [Browserraum öffnen](https://juri-halveth.github.io/lucinet-seedspa
 [erhaltene Anleitung](SEEDSPACE.md).
 Die NOVA-CLI und der Kugelraum haben unterschiedliche Einstiege und Aufgaben.
 
+## Verwandte öffentliche Forschung
+
+Die [HALVETH-Wissensübersicht](https://juri-halveth.github.io/halveth-forschungslabor/wissen/)
+gehört zum getrennten [Forschungslabor-Repository](https://github.com/Juri-Halveth/halveth-forschungslabor).
+Dort werden dessen öffentliche Module mit Quellen, Tests und bekannten Grenzen
+verbunden. NOVA kann daraus eine begrenzte Auswahl öffentlicher Dateien lokal
+lesen; eine Prüfung privater Arbeitsstände oder aller HALVETH-Projekte folgt
+daraus nicht.
+
 ## Lizenz und Kontakt
 
 NOVA ist **source-available unter HALVETH PIRL 2.0** mit den ausdrücklich
