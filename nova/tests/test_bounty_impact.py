@@ -53,7 +53,7 @@ def base_spec():
 
 class BountyImpactTests(unittest.TestCase):
     def verified_ids(self, spec):
-        return {row["id"] for row in spec["evidence_refs"]}
+        return {(row["id"], row["digest"]) for row in spec["evidence_refs"]}
 
     def test_declared_evidence_alone_does_not_reach_report_candidate(self):
         result = assess(base_spec())

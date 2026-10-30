@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from urllib.parse import urlsplit
 
 from ..jsonutil import sha256_json
 
@@ -31,16 +32,36 @@ def _text(value, field: str, *, allow_unknown: bool = True, max_len: int = 4000)
 
 
 def _asset_matches(asset: str, authorized: str) -> bool:
-    return asset == authorized or asset.startswith(authorized.rstrip("/") + "/")
+    # Scope is a URL boundary, not a string prefix. Reject ambiguous paths.
+    try:
+        left, right = urlsplit(asset), urlsplit(authorized)
+        same_authority = (
+            left.scheme == right.scheme
+            and left.hostname == right.hostname
+            and left.port == right.port
+        )
+    except ValueError:
+        return False
+    if left.scheme not in {"http", "https"} or right.scheme not in {"http", "https"}:
+        return asset == authorized
+    if any(part.username or part.password or part.query or part.fragment for part in (left, right)):
+        return False
+    if not same_authority:
+        return False
+    for path in (left.path, right.path):
+        if "%" in path or "\\" in path or "//" in path or any(segment in {".", ".."} for segment in path.split("/")):
+            return False
+    base = right.path.rstrip("/")
+    return left.path == base or left.path.startswith(base + "/")
 
 
 def _root_signature(root: dict) -> str | None:
-    if any(root[key] == "UNKNOWN" for key in ROOT_FIELDS):
+    if any(root[key].strip() == "UNKNOWN" for key in ROOT_FIELDS):
         return None
     return sha256_json({key: root[key] for key in ROOT_FIELDS})
 
 
-def assess(spec: dict, *, verified_evidence: set[str] | None = None) -> dict:
+def assess(spec: dict, *, verified_evidence: set[tuple[str, str]] | None = None) -> dict:
     verified_evidence = set(verified_evidence or ())
     top = {"contract", "program", "finding", "proof", "root_cause", "known_patterns", "evidence_refs"}
     if not isinstance(spec, dict) or set(spec) != top or spec.get("contract") != CONTRACT:
@@ -119,7 +140,8 @@ def assess(spec: dict, *, verified_evidence: set[str] | None = None) -> dict:
             raise ValueError("BOUNTY_REFERENCE_DIGEST")
         if ref["supports"] not in EVIDENCE_FIELDS:
             raise ValueError("BOUNTY_REFERENCE_SUPPORTS")
-        normalized_refs.append({**ref, "state": "BOUND_TO_NOVA_SOURCE" if ref["id"] in verified_evidence else "DECLARED_NOT_VERIFIED"})
+        binding = (ref["id"], ref["digest"])
+        normalized_refs.append({**ref, "state": "BOUND_TO_NOVA_SOURCE" if binding in verified_evidence else "DECLARED_NOT_VERIFIED"})
 
     root_sig = _root_signature(root)
     exact_matches = [row["id"] for row in normalized_patterns if root_sig and row["root_cause_signature"] == root_sig]
@@ -130,14 +152,14 @@ def assess(spec: dict, *, verified_evidence: set[str] | None = None) -> dict:
     )
     safe_environment = proof["environment"] in SAFE_ENVIRONMENTS
     reproduced = proof["state"] != "NOT_REPRODUCED" and proof["runs"] >= 2 and proof["successes"] >= 2
-    negative_control = proof["negative_control"] != "UNKNOWN"
+    negative_control = proof["negative_control"].strip() != "UNKNOWN"
     impact_bound = (
         finding["security_property"] != "UNKNOWN"
-        and finding["impact"] != "UNKNOWN"
-        and finding["action_required"] != "UNKNOWN"
+        and finding["impact"].strip() != "UNKNOWN"
+        and finding["action_required"].strip() != "UNKNOWN"
     )
     root_bound = root_sig is not None
-    remediation_control = proof["remediation_control"] != "UNKNOWN"
+    remediation_control = proof["remediation_control"].strip() != "UNKNOWN"
     supports = {row["supports"] for row in normalized_refs if row["state"] == "BOUND_TO_NOVA_SOURCE"}
     evidence_bound = {"policy", "scope", "reproduction", "impact", "root_cause"}.issubset(supports)
 
@@ -186,7 +208,7 @@ def assess(spec: dict, *, verified_evidence: set[str] | None = None) -> dict:
 
     reward_context = None
     sev = finding["candidate_severity"]
-    if sev != "UNKNOWN" and finding["severity_basis"] != "UNKNOWN":
+    if sev != "UNKNOWN" and finding["severity_basis"].strip() != "UNKNOWN":
         reward_context = {
             "candidate_severity": sev,
             "severity_basis": finding["severity_basis"],

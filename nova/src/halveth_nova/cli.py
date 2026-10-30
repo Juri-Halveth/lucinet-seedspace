@@ -242,18 +242,30 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError("BOUNTY_INPUT_LIMIT")
             raw = file.read_bytes(); spec = strict_loads(raw.decode("utf-8"))
             source = store.ingest_bytes(store._locator_for(file, file), raw, tags=["bounty-impact-input"])
-            verified_evidence = set()
-            for ref in spec.get("evidence_refs", []):
-                try:
-                    stored = store.source_by_id(ref.get("id", ""))
-                except KeyError:
-                    continue
-                if stored.get("digest") == ref.get("digest"):
-                    verified_evidence.add(ref["id"])
-            result = assess(spec, verified_evidence=verified_evidence)
-            record = store.ingest_bytes("derived/" + source["source_id"] + "/bounty-impact.json",
-                (canonical_json(result) + "\n").encode("utf-8"), tags=["bounty-impact-assessment"],
-                metadata={"parent_source_id": source["source_id"], "parent_digest": source["digest"], "state": result["state"]})
+            from .workbench.controller import Workbench
+            evidence_workbench = Workbench(args.workspace)
+            with store.write_lock():
+                evidence_sources = {row["source_id"]: row for row in store.sources()}
+                evidence_statuses = store.status_map()
+                verified_evidence = set()
+                for ref in spec.get("evidence_refs", []):
+                    try:
+                        stored = store.source_by_id(ref.get("id", ""))
+                    except KeyError:
+                        continue
+                    if stored.get("digest") == ref.get("digest"):
+                        if evidence_workbench.effective_status(stored["source_id"], evidence_statuses, evidence_sources) != "active":
+                            continue
+                        try:
+                            evidence_workbench.read_object(stored)
+                        except (OSError, ValueError):
+                            continue
+                        verified_evidence.add((ref["id"], ref["digest"]))
+                result = assess(spec, verified_evidence=verified_evidence)
+                record, created = store._record_source("derived/" + source["source_id"] + "/bounty-impact.json",
+                    (canonical_json(result) + "\n").encode("utf-8"), ["bounty-impact-assessment"],
+                    {"parent_source_id": source["source_id"], "parent_digest": source["digest"], "state": result["state"]})
+                record = {**record, "created": created}
             emit({"result": result, "record": record})
         elif args.command == "universe":
             from .workbench.github_adapter import inventory
