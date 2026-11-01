@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 330" role="img" aria-labelledby="title desc">
+<title id="title">LUCINET / NOVA · HALVETH NETZ</title><desc id="desc">LUCINET und NOVA im HALVETH NETZ: verbundene Quellen mit erhaltener Geschichte. Navigationsgrafik zum interaktiven Starship Lab.</desc>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#080d19"/><stop offset="1" stop-color="#151327"/></linearGradient><radialGradient id="glow"><stop stop-color="#69c7ff" stop-opacity=".18"/><stop offset="1" stop-color="#69c7ff" stop-opacity="0"/></radialGradient></defs>
+<rect width="1200" height="330" rx="24" fill="url(#bg)"/><rect x="1.5" y="1.5" width="1197" height="327" rx="22.5" fill="none" stroke="#69c7ff" stroke-opacity=".48" stroke-width="3"/><circle cx="870" cy="166" r="220" fill="url(#glow)"/>
+<path d="M47 65h130M47 264h130" stroke="#69c7ff" stroke-width="2" stroke-opacity=".65"/><text x="48" y="54" fill="#69c7ff" font-size="18" font-family="Segoe UI,Arial,sans-serif" font-weight="700" letter-spacing="5">HALVETH / NETZ</text>
+<text x="48" y="143" fill="#f3f5fa" font-size="48" font-family="Segoe UI,Arial,sans-serif" font-weight="800" letter-spacing="1">LUCINET / NOVA</text>
+<text x="49" y="188" fill="#c2c9d8" font-size="25" font-family="Segoe UI,Arial,sans-serif">Quellen finden · Korrekturen erhalten</text>
+<text x="49" y="238" fill="#8d86f5" font-size="17" font-family="Segoe UI,Arial,sans-serif" font-weight="600" letter-spacing="2">STARSHIP LAB · PROJEKTKARTE</text>
+<g fill="none" stroke="#69c7ff" stroke-width="3"><path d="M718 206 811 125 904 185 1006 88"/><path d="M718 206 827 252 904 185" stroke="#8d86f5"/><circle cx="718" cy="206" r="16"/><circle cx="811" cy="125" r="16"/><circle cx="904" cy="185" r="16"/><circle cx="1006" cy="88" r="16"/><circle cx="827" cy="252" r="16"/></g><g fill="#69c7ff"><circle cx="811" cy="125" r="5"/><circle cx="904" cy="185" r="5"/></g>
+</svg>
