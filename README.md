@@ -1,13 +1,15 @@
 # NOVA · frühere Arbeit wiederfinden und nachvollziehbar fortsetzen
 
-[![LUCINET und NOVA im HALVETH NETZ: verbundene Quellen mit erhaltener Geschichte](assets/netz-starship-hero.svg)](https://juri-halveth.github.io/universum/)
-
-**Im NETZ:** [Interaktives Starship Lab öffnen](https://juri-halveth.github.io/universum/) · Themen: Software & Werkzeuge · Sicherheit & Belege. Im Katalog dieses Projekt wählen; die eigene Anwendung und ihre Quellen bleiben hier dokumentiert.
-
-
 NOVA ist ein lokales Python-Werkzeug für Menschen, die mit vielen Notizen,
 Quelltexten und Forschungsständen arbeiten: Es findet Quellen wieder, erhält
 Korrekturen und schreibt auf, worauf ein Ergebnis beruht und was als Nächstes ansteht.
+
+**Direkt ausprobieren:** [Lokale NOVA-Demo in einer Minute starten](#in-einer-minute-anfangen).
+Der Einstieg erzeugt einen eigenen Beispiel-Workspace; die Python-CLI läuft lokal.
+
+[CLI-Anleitung](nova/README.md) · [Seedspace-Browserraum (eigenständige Demo)](https://juri-halveth.github.io/lucinet-seedspace/) · [HALVETH Starship Lab (optional)](https://juri-halveth.github.io/universum/)
+
+![LUCINET und NOVA im HALVETH NETZ: verbundene Quellen mit erhaltener Geschichte](assets/netz-starship-hero.svg)
 
 **Python 3.11+ · Windows / Linux / macOS · Quellen und Basisanalyse lokal ·
 keine zusätzlichen Python-Laufzeitpakete für den Kern**
