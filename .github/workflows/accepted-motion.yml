@@ -27,3 +27,4 @@ jobs:
       - run: python nova/labs/accepted-motion/verify.py
       - run: python nova/labs/accepted-motion/test_package.py
       - run: node --test nova/labs/accepted-motion/motion/motion-boundary.test.mjs
+      - run: python nova/labs/accepted-motion/test_measure.py

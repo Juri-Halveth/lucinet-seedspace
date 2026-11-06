@@ -34,7 +34,13 @@ bytegenau. Nur ihr gemeinsamer übergeordneter Ordner wurde für den lokalen
 ```sh
 python nova/labs/accepted-motion/verify.py
 node --test nova/labs/accepted-motion/motion/motion-boundary.test.mjs
+python nova/labs/accepted-motion/measure.py motion-results-new
 ```
+
+Die letzte Zeile benötigt Node.js 22+ und einen noch nicht vorhandenen
+Ausgabeordner. Sie erzeugt beide Messspuren mit je 660 Modellschritten in
+einer temporären Kopie. Dafür wird der vom historischen Messskript erwartete
+Ausgabeordner angelegt; die eingefrorenen Quelldateien bleiben unverändert.
 
 ## Visuelle Abnahme und technische Messung
 

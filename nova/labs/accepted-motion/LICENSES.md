@@ -7,7 +7,7 @@
 | `motion/vendor/*.js` | Three.js 0.180.0, MIT. [Lizenz](motion/vendor/LICENSE-three.txt), [gebundene Herkunft](motion/vendor/PROVENANCE.json). Nur die tatsächlich im Manifest gelisteten Module liegen bei; der historische Herkunftsrecord nennt zusätzlich ein hier nicht mitgeliefertes Reflector-Modul. |
 | `motion/character-assets/fictional-adult.glb`, `motion/character-assets/motions.glb` | Ableitungen aus den Standardpaketen Universal Base Characters, Modular Character Outfits – Fantasy und Universal Animation Library von Quaternius, CC0 1.0. Die Originalhinweise `LICENSE-base.txt`, `LICENSE-outfit.txt`, `LICENSE-motion.txt` bleiben erhalten. |
 | `motion/character-assets/BUILD.json` | HALVETH-Buildnachweis; beschreibt Auswahl und Verarbeitung, keine neue Rechtebehauptung an CC0-Assets. |
-| `README.md`, `LICENSES.md`, `ACCEPTANCE.json`, `FROZEN_FILES.json`, `.gitattributes`, `verify.py`, `serve.py`, `test_package.py`, `START.cmd`, `universum/index.html` | Neue HALVETH-Dokumentation und Hilfsdateien unter [HALVETH PIRL 2.0](../../LICENSE-HALVETH-PIRL-2.0.md), soweit eigene Rechte bestehen. |
+| `README.md`, `LICENSES.md`, `ACCEPTANCE.json`, `FROZEN_FILES.json`, `.gitattributes`, `verify.py`, `serve.py`, `test_package.py`, `measure.py`, `test_measure.py`, `START.cmd`, `universum/index.html` | Neue HALVETH-Dokumentation und Hilfsdateien unter [HALVETH PIRL 2.0](../../LICENSE-HALVETH-PIRL-2.0.md), soweit eigene Rechte bestehen. |
 
 CC0-Grafikdaten und MIT-/GPL-Komponenten werden durch HALVETH PIRL nicht
 nachträglich eingeschränkt. Das reine Nutzen dieser externen Komponenten
