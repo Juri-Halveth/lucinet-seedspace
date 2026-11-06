@@ -1,0 +1,28 @@
+{
+  "package": "three",
+  "version": "0.180.0",
+  "source": "https://registry.npmjs.org/three/-/three-0.180.0.tgz",
+  "archive_sha256": "ad66d724565ee29a2467277fa84daa5ed0211d6b8d446e9ef29f6bae0cd14144",
+  "files": {
+    "LICENSE-three.txt": "bfe119ea4fd413f5f7ca3fcd63adb0c4a073ed39daa2fe7d3e6b769e21272601",
+    "three.core.min.js": "61ba0df005b05991361d040d8ff670e1aadfd0ce7aeebd1fdb0725957a8957de",
+    "three.module.min.js": "e2b5ee6bccd38fd6d8a2428546b83c5f2426d84b152ef82be8055556e3b40eb6"
+  },
+  "license": "MIT",
+  "network_at_runtime": false,
+  "additional_mit_modules": {
+    "GLTFLoader.js": {
+      "sha256": "30531ae54b775554ef082d5e7621db4b04511c05b95b7aa5c539db5cbb7698ad",
+      "change": "Local relative import rewrite only; UTF-8 LF"
+    },
+    "BufferGeometryUtils.js": {
+      "sha256": "018b6ec0dcbbaea7d68b02d8d1162ab37783b9dbd4cc85fdbc35506690a993ea",
+      "change": "Local relative import rewrite only; UTF-8 LF"
+    },
+    "Reflector.js": {
+      "source_sha256": "0908d87a7251268dd6d12310b9633f08fd3be9c6faf2e2a4076fce0e87bdd26d",
+      "sha256": "2b6ee347f999ff0bf5a1e2a3711ed729a5a4c171c2dd42dffc366509653810ae",
+      "change": "Local relative import rewrite only; UTF-8 LF"
+    }
+  }
+}

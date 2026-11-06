@@ -1,0 +1,28 @@
+{
+  "schema": "halveth.visual-acceptance.v1",
+  "decision_date": "2026-11-06",
+  "decision_source": "Explicit project-owner instruction in the current conversation",
+  "visual_status": "USER_ACCEPTED_VISUAL_BASELINE",
+  "owner_assessment": "Movement is credible and clearly better than earlier attempts; preserve this version.",
+  "technical_status": "KNOWN_MEASURED_LIMITS_RETAINED",
+  "motion_changed_for_publication": false,
+  "file_manifest": "FROZEN_FILES.json",
+  "known_measured_limits": {
+    "manual_stop_max_selected_sole_mm": 47.12713840719588,
+    "six_stop_cases_max_selected_sole_mm": 61.497739713062636,
+    "sample_interval_seconds": 0.016666666666666666,
+    "force_balance_self_collision": "NOT_VERIFIED"
+  },
+  "private_review_binding": {
+    "archive_sha256": "bafdecd3055007d3132311ddb10140cee5bb50b1539ac263a3148772bcf56865",
+    "contents_uploaded": false
+  },
+  "development_pause": {
+    "start_date": "2026-11-06",
+    "until_date": "2026-11-13",
+    "timezone": "Europe/Berlin",
+    "automatic_resume": false,
+    "resume_requires": "New user instruction; earlier explicit instruction may change the pause"
+  },
+  "historical_reports": "Preserved; user visual acceptance is a new record, not a rewrite of measured results"
+}

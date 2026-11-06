@@ -1,0 +1,29 @@
+name: Accepted motion snapshot
+on:
+  push:
+    paths:
+      - 'nova/labs/accepted-motion/**'
+      - '.github/workflows/accepted-motion.yml'
+  pull_request:
+    paths:
+      - 'nova/labs/accepted-motion/**'
+      - '.github/workflows/accepted-motion.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python nova/labs/accepted-motion/verify.py
+      - run: python nova/labs/accepted-motion/test_package.py
+      - run: node --test nova/labs/accepted-motion/motion/motion-boundary.test.mjs
