@@ -1,0 +1,112 @@
+{
+  "schema": "halveth.accepted-motion.files.v1",
+  "accepted_date": "2026-11-06",
+  "scope": "Exact 21 copied files of the locally accepted figure, including original licence notices and build metadata",
+  "files": [
+    {
+      "path": "motion/build-character.py",
+      "bytes": 8934,
+      "sha256": "d7a1de25279fe5bcd0e295571fc307929ec3da0bea149f28d290327ea35742df"
+    },
+    {
+      "path": "motion/character-assets/BUILD.json",
+      "bytes": 1657,
+      "sha256": "2904146b469080edbd22869abc8d0ba4ebdf1ddffe281ef414dd49f14ac3599e"
+    },
+    {
+      "path": "motion/character-assets/fictional-adult.glb",
+      "bytes": 9387296,
+      "sha256": "8a607b0c2eedb2282bd1d2a58230369090c21c6cedf1b33a9b72fd74ab475e66"
+    },
+    {
+      "path": "motion/character-assets/LICENSE-base.txt",
+      "bytes": 782,
+      "sha256": "c232257c8a2545520aa120cda96acb23d00a355d2e3339cba20b7ebf56f28a09"
+    },
+    {
+      "path": "motion/character-assets/LICENSE-motion.txt",
+      "bytes": 318,
+      "sha256": "67e65a88def1ce573211f5cac3f514014abeface8fe48309c010491186b3a89a"
+    },
+    {
+      "path": "motion/character-assets/LICENSE-outfit.txt",
+      "bytes": 705,
+      "sha256": "cd887d30d81e7dcc8e5dce981c1433b2edc92bf775b487db32c202ac2fbe1d05"
+    },
+    {
+      "path": "motion/character-assets/motions.glb",
+      "bytes": 7620504,
+      "sha256": "be684571ed655a1b892c2c07e6e2aeca053b606c442d34004adaf1d944090d01"
+    },
+    {
+      "path": "motion/character-retarget.mjs",
+      "bytes": 3279,
+      "sha256": "a99e6d5e187cd608fbdce08d89abaae889cdb813c2328dc88ebccf36218bb029"
+    },
+    {
+      "path": "motion/index.html",
+      "bytes": 2036,
+      "sha256": "bf14aaf57003e0aa80e6677d64777620d03e06a7c16b745d79863f8a039aaf5e"
+    },
+    {
+      "path": "motion/measure-motion.mjs",
+      "bytes": 1848,
+      "sha256": "7291c6d5b071b70e57c37058f9c5acd361052fc6f5455b6e7941636e482b0096"
+    },
+    {
+      "path": "motion/motion-boundary.test.mjs",
+      "bytes": 1810,
+      "sha256": "3168ba86943b8d5dae556d143bb0a654b7bc913c4abc0cf432d009abc275c2f8"
+    },
+    {
+      "path": "motion/motion-model.mjs",
+      "bytes": 7646,
+      "sha256": "4d310c3846d639c818f8a427a1963a7c39145cb39ac451e3d907aac508e677ae"
+    },
+    {
+      "path": "motion/playable-motion.mjs",
+      "bytes": 8073,
+      "sha256": "ccb2f7d9a7f826b80537155cc6a8c12ec0aca7744a580f53d287a98930b6ce80"
+    },
+    {
+      "path": "motion/scene.css",
+      "bytes": 1260,
+      "sha256": "1937288842df1f33cbfe38e98481e9888fa6d0b0f3e685e4d7e9ba03eb120821"
+    },
+    {
+      "path": "motion/scene.mjs",
+      "bytes": 7903,
+      "sha256": "72db65657378932de8127693386f25f11f779902320a2a1bdbb164ec5d23a449"
+    },
+    {
+      "path": "motion/vendor/BufferGeometryUtils.js",
+      "bytes": 35555,
+      "sha256": "018b6ec0dcbbaea7d68b02d8d1162ab37783b9dbd4cc85fdbc35506690a993ea"
+    },
+    {
+      "path": "motion/vendor/GLTFLoader.js",
+      "bytes": 114748,
+      "sha256": "30531ae54b775554ef082d5e7621db4b04511c05b95b7aa5c539db5cbb7698ad"
+    },
+    {
+      "path": "motion/vendor/LICENSE-three.txt",
+      "bytes": 1081,
+      "sha256": "bfe119ea4fd413f5f7ca3fcd63adb0c4a073ed39daa2fe7d3e6b769e21272601"
+    },
+    {
+      "path": "motion/vendor/PROVENANCE.json",
+      "bytes": 1218,
+      "sha256": "a2a27e90f5ea3f032bea69451fa994faf1243d813c273b0aad351d56ccfa1238"
+    },
+    {
+      "path": "motion/vendor/three.core.min.js",
+      "bytes": 381124,
+      "sha256": "61ba0df005b05991361d040d8ff670e1aadfd0ce7aeebd1fdb0725957a8957de"
+    },
+    {
+      "path": "motion/vendor/three.module.min.js",
+      "bytes": 338908,
+      "sha256": "e2b5ee6bccd38fd6d8a2428546b83c5f2426d84b152ef82be8055556e3b40eb6"
+    }
+  ]
+}

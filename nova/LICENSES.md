@@ -4,6 +4,7 @@ This file maps only the new material under `nova/`. It does **not** relicense pr
 
 | Paths | License |
 | --- | --- |
+| `labs/accepted-motion/**` | See the explicit [accepted-motion license map](labs/accepted-motion/LICENSES.md): original HALVETH contributions, GPL builder, MIT Three.js and CC0 character/animation assets remain separate. |
 | `src/halveth_nova/**`, `tests/**`, `contracts/**`, `examples/**`, `labs/molecular-lineage/**` (except the external source data described below), `README.md`, `WORKBENCH.md`, `MAINTENANCE_2_0_3.md`, `NOVA_CORE_PROMPT.md`, `pyproject.toml` | [HALVETH Public-Interest Research License 2.0](LICENSE-HALVETH-PIRL-2.0.md), to the extent the rights are controlled by Juri Janovski / Juri-Halveth. |
 | `LICENSE-HALVETH-PIRL-2.0.md` | The unmodified license text may be copied for identification and review under its own terms. |
 

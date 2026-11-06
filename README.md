@@ -69,6 +69,10 @@ externe Quellenwahrheit und Nutzen im Alltag benötigen ihre eigene Prüfung.
 
 ## Weiteres in diesem Repository
 
+Die **[akzeptierte Bewegungsfassung](nova/labs/accepted-motion/README.md)**
+bewahrt eine lokal steuerbare fiktive 3D-Figur mit gebundenen Quellbytes,
+Dateilizenzen und getrennten visuellen und technischen Abnahmeständen.
+
 Der ursprüngliche **Seedspace-Kugelraum** bleibt als getrennte Browserarbeit
 erreichbar: [Browserraum öffnen](https://juri-halveth.github.io/lucinet-seedspace/) ·
 [erhaltene Anleitung](SEEDSPACE.md).

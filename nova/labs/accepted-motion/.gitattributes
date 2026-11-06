@@ -1,0 +1,2 @@
+# Preserve the accepted source/asset bytes across Windows and Linux checkouts.
+motion/** -text

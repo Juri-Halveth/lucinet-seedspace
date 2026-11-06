@@ -1,0 +1,69 @@
+{
+  "builder": "build-character.py",
+  "blender": "5.2.3 LTS",
+  "rigRestEquality": "65_NAME_BOUND_REST_MATRICES_WITHIN_1E-5",
+  "body": "outfit body plus base head/neck only",
+  "headCut": {
+    "method": "ANATOMICAL_REST_VOLUME_NOT_SKIN_WEIGHT_THRESHOLD",
+    "headMinZ": 1.535,
+    "neckMinZ": 1.445,
+    "neckHalfX": 0.072,
+    "neckHalfY": 0.115,
+    "originalBlendWeights": "RETAINED"
+  },
+  "hair": "Hair_Buns; hood omitted",
+  "textureCeiling": 1024,
+  "sourceRepair": "T_Eye_Normal_png.png URI -> existing T_Eye_Normal.png",
+  "meshes": [
+    {
+      "name": "Female_Peasant_Arms",
+      "vertices": 5436,
+      "triangles": 6848
+    },
+    {
+      "name": "Female_Peasant_Body",
+      "vertices": 1730,
+      "triangles": 2188
+    },
+    {
+      "name": "Female_Peasant_Feet",
+      "vertices": 1892,
+      "triangles": 2588
+    },
+    {
+      "name": "Female_Peasant_Legs",
+      "vertices": 1126,
+      "triangles": 1944
+    },
+    {
+      "name": "Eyebrows",
+      "vertices": 912,
+      "triangles": 1480
+    },
+    {
+      "name": "Eyes",
+      "vertices": 556,
+      "triangles": 768
+    },
+    {
+      "name": "NOVA_Head_Neck",
+      "vertices": 1754,
+      "triangles": 3188
+    },
+    {
+      "name": "Hair_Buns",
+      "vertices": 3501,
+      "triangles": 3284
+    }
+  ],
+  "outputs": {
+    "fictional-adult.glb": {
+      "bytes": 9387296,
+      "sha256": "8a607b0c2eedb2282bd1d2a58230369090c21c6cedf1b33a9b72fd74ab475e66"
+    },
+    "motions.glb": {
+      "bytes": 7620504,
+      "sha256": "be684571ed655a1b892c2c07e6e2aeca053b606c442d34004adaf1d944090d01"
+    }
+  }
+}
