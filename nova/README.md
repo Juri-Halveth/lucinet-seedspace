@@ -149,6 +149,62 @@ nova verify
 nova export nova-state.zip
 ```
 
+## Eine Anfrage an lokale Quellen und das öffentliche Netz
+
+In einem bereits initialisierten NOVA-Workspace verbindet dieser ausdrücklich
+gewählte Befehl die bestehende lokale Suche mit öffentlichen HALVETH-Beschreibungen:
+
+```bash
+python nova/nova.py --workspace ./research network-search "GG24"
+python nova/nova.py --workspace ./research network-search "Inventar" --include-historical --limit 20
+```
+
+In Windows PowerShell, vom Repository-Hauptordner aus:
+
+```powershell
+python .\nova\nova.py --workspace .\research network-search "GG24"
+python .\nova\nova.py --workspace .\research network-search "Inventar" --include-historical --limit 20
+```
+
+Der Befehl lädt ausschließlich
+`https://juri-halveth.github.io/universum/api/search.json` per HTTPS-GET und
+filtert beide Bereiche auf dem eigenen Rechner. Suchtext und lokale Quellen
+werden nicht an den Server übertragen. Der Abruf verwendet keine Anmeldung
+oder Cookies und folgt keinen Weiterleitungen. Es gibt keinen frei wählbaren
+URL-Parameter. Der Workspace, Quellzustände und frühere Receipts bleiben unverändert.
+
+Die JSON-Ausgabe trennt `local_source` und `public_description`. Jeder Treffer
+enthält ID, Revision, Digest, Status und Beobachtungszeit. Bei lokalen Treffern
+wird der Digest gegen die gespeicherten Quellbytes geprüft. Bei öffentlichen
+Treffern bindet der Digest den Beschreibungseintrag; zusätzlich wird der gesamte
+empfangene Index gehasht. Das prüft weder die vollständigen Originaldateien des
+öffentlichen Projekts noch dessen Laufzeitverhalten. Öffentliche Quellen ohne
+gebundene Revision behalten `revision: null`.
+
+Standardmäßig erscheinen nur aktive lokale Quellen und die als aktuell
+freigegeben markierten Einträge des abgerufenen öffentlichen Index.
+`searchedAt` datiert die Abfrage; `observedAt` bleibt der jeweilige Quellenstand
+und wird nicht auf den Abrufzeitpunkt gesetzt. `--include-historical` zeigt zusätzlich historische,
+ersetzte und zurückgezogene Treffer mit ihrem jeweiligen Status. Ein datierter
+18er-Bestand bleibt damit Geschichte, während ein aktiver 21er-Bestand als
+aktuell erkennbar ist. Die bestehende Bedeutung von `search` bleibt erhalten.
+
+Jeder Bereich meldet Trefferzahl, Rückgabelimit und Kürzung. Ein fehlgeschlagener
+Bereich ergibt `state: PARTIAL`, einen benannten Scope-Fehler und Exitcode 2;
+Treffer des anderen Bereichs bleiben verfügbar. Zwei erfolgreich durchsuchte
+Bereiche ohne Treffer ergeben `state: OK`, eine leere Trefferliste und Exitcode 0.
+`OK` bezeichnet den erfolgreichen Abruf und Suchlauf, keine vollständige Kenntnis
+aller HALVETH-Dateien. Erfasst sind ausdrücklich eingelesene Workspace-Quellen
+und die Beschreibungen im öffentlichen Index; unindexierte Dateien, private
+Archive und vollständige öffentliche Repository-Inhalte werden nicht erschlossen.
+
+Grenzen: 512 Zeichen Suchtext, 1–100 Treffer je Bereich (Standard 20), höchstens
+2.000 lokale Quellrecords mit jeweils höchstens 8 MB sowie ein öffentlicher
+Index mit höchstens 1 MB und 2.000 Beschreibungen. Der HTTPS-Abruf hat ein
+Socket-Timeout von acht Sekunden. Größen-, Schema- und Integritätsfehler werden
+als Fehler des betroffenen Bereichs ausgewiesen. Die Ausgabe bleibt lokal im
+Terminal; der Befehl speichert oder veröffentlicht sie nicht automatisch.
+
 ## Workspace format
 
 NOVA creates a `.nova/` directory inside the chosen workspace:
