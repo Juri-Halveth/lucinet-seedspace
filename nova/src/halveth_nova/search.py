@@ -132,7 +132,7 @@ def search_sources(
             line_start=ls,
             line_end=le,
             excerpt=excerpt,
-            usable_as_current=status in {"active", "historical"},
+            usable_as_current=status == "active",
             tags=list(record.get("tags", [])),
         ))
     hits.sort(key=lambda h: (-h.score, h.locator, h.source_id))
