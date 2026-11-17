@@ -31,6 +31,10 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("search", help="search sources without executing them")
     s.add_argument("query"); s.add_argument("--limit", type=int, default=20); s.add_argument("--exclude-retracted", action="store_true")
 
+    s = sub.add_parser("network-search", help="lokale Quellen und feste öffentliche Netzbeschreibungen gemeinsam durchsuchen")
+    s.add_argument("query"); s.add_argument("--limit", type=int, default=20)
+    s.add_argument("--include-historical", action="store_true", help="auch historische, ersetzte und zurückgezogene Treffer anzeigen")
+
     s = sub.add_parser("source-status", help="append source status event")
     s.add_argument("source_id"); s.add_argument("status", choices=sorted(SOURCE_STATUSES)); s.add_argument("--note", default=""); s.add_argument("--superseded-by")
 
@@ -139,6 +143,11 @@ def main(argv: list[str] | None = None) -> int:
             emit(engine.ingest(args.path, tags=args.tag, metadata=parse_meta(args.meta), max_bytes=args.max_bytes))
         elif args.command == "search":
             emit(engine.search(args.query, limit=args.limit, include_retracted=not args.exclude_retracted))
+        elif args.command == "network-search":
+            from .network_search import network_search
+            result = network_search(engine, args.query, limit=args.limit, include_historical=args.include_historical)
+            emit(result)
+            return 0 if result["state"] == "OK" else 2
         elif args.command == "source-status":
             emit(store.set_status(args.source_id, args.status, note=args.note, superseded_by=args.superseded_by))
         elif args.command == "relate":
