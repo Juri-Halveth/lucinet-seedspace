@@ -8,6 +8,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout
 from email.message import Message
+from http.client import HTTPResponse
 from pathlib import Path
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError, URLError
@@ -151,6 +152,31 @@ class NetworkSearchTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertEqual(result["state"], "PARTIAL")
         self.assertEqual(result["scopes"]["public_description"]["error"], "PUBLIC_HTTP_404")
+
+    def test_truncated_chunked_response_preserves_local_hits_in_partial_cli_result(self):
+        from contextlib import redirect_stderr
+
+        before = self.snapshot()
+        socket = Mock()
+        socket.makefile.return_value = io.BytesIO(
+            b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n"
+            b"Transfer-Encoding: chunked\r\n\r\n5\r\nabc")
+        response = HTTPResponse(socket)
+        response.begin()
+        response.url = PUBLIC_INDEX_URL
+        opener = Mock(); opener.open.return_value = response
+        output, errors = io.StringIO(), io.StringIO()
+        with patch("halveth_nova.network_search.build_opener", return_value=opener), \
+                redirect_stdout(output), redirect_stderr(errors):
+            code = main(["--workspace", str(self.root), "network-search", "GG24"])
+        self.assertEqual(code, 2)
+        self.assertEqual(errors.getvalue(), "")
+        result = json.loads(output.getvalue())
+        self.assertEqual(result["state"], "PARTIAL")
+        self.assertEqual(result["scopes"]["public_description"]["error"], "IncompleteRead")
+        self.assertEqual(result["scopes"]["local_source"]["state"], "OK")
+        self.assertEqual([hit["source_id"] for hit in result["hits"]], [self.current["source_id"]])
+        self.assertEqual(self.snapshot(), before)
 
     def test_invalid_query_and_limit_make_no_request(self):
         loader = Mock(return_value=public_index())

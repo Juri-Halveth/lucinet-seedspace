@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import re
 from datetime import datetime
+from http.client import HTTPException
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -177,7 +178,7 @@ def network_search(engine, query, *, include_historical=False, limit=20, loader=
                               else _public((loader or _load_public_index)(), query, include_historical, limit))
             result["hits"].extend(hits)
             result["scopes"][scope] = coverage
-        except (ValueError, RuntimeError, OSError, URLError, UnicodeError, RecursionError, KeyError, TypeError) as error:
+        except (ValueError, RuntimeError, OSError, URLError, HTTPException, UnicodeError, RecursionError, KeyError, TypeError) as error:
             code = "PUBLIC_HTTP_" + str(error.code) if isinstance(error, HTTPError) else type(error).__name__
             if isinstance(error, ValueError) and re.fullmatch(r"[A-Z_]+", str(error)):
                 code = str(error)
