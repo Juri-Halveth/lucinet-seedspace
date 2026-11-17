@@ -78,6 +78,29 @@ class NovaTests(unittest.TestCase):
         self.assertFalse(hit["usable_as_current"])
         self.assertEqual(self.engine.search("rotes Ding mit Stern", include_retracted=False), [])
 
+    def test_historical_inventory_remains_searchable_without_becoming_current(self):
+        from halveth_nova.workbench.controller import Workbench
+
+        old = self.engine.ingest(self.write("old-inventory.txt", "public inventory: 18 entries"))[0]
+        original = (self.engine.store.objects / old["digest"]).read_bytes()
+        receipt = self.engine.run("public inventory")
+        self.engine.store.set_status(old["source_id"], "historical", note="dated snapshot retained")
+        current = self.engine.ingest(self.write("current-inventory.txt", "public inventory: 21 entries"))[0]
+
+        core_hits = {hit["source_id"]: hit for hit in self.engine.search("public inventory")}
+        self.assertEqual(core_hits[old["source_id"]]["status"], "historical")
+        self.assertFalse(core_hits[old["source_id"]]["usable_as_current"])
+        self.assertTrue(core_hits[current["source_id"]]["usable_as_current"])
+        workbench_hits = {hit["source_id"]: hit for hit in Workbench(self.root).run("public inventory")["result"]["hits"]}
+        for source in (old, current):
+            sid = source["source_id"]
+            self.assertEqual(core_hits[sid]["usable_as_current"], workbench_hits[sid]["usable_as_current"])
+
+        self.assertEqual((self.engine.store.objects / old["digest"]).read_bytes(), original)
+        self.assertEqual(self.engine.store.ledger()[0], receipt)
+        self.assertEqual(self.engine.store.status_map()[old["source_id"]]["status"], "historical")
+        self.assertTrue(self.engine.store.verify()["ok"])
+
     def test_relation_requires_known_evidence_and_typed_predicate(self):
         sid = self.engine.ingest(self.write("a.txt", "A"))[0]["source_id"]
         rel = self.engine.store.add_relation("A", "CONTRADICTS", "B", "hypothesis", [sid])

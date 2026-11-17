@@ -182,7 +182,7 @@ For the preserved `run` command, the mode labels the receipt. The new `work` com
 
 NOVA separates **retrieval** from **current interpretation**.
 
-A historical or retracted source stays searchable because deleting it would destroy concept lineage. Search returns:
+A historical, superseded or retracted source stays searchable because deleting it would destroy concept lineage. Only an `active` source has `usable_as_current: true`; the other statuses return `false` in both core search and the workbench. A historical inventory remains evidence for its dated snapshot, not the current total. Search returns:
 
 ```json
 {
@@ -192,6 +192,9 @@ A historical or retracted source stays searchable because deleting it would dest
 ```
 
 That prevents a strong lexical match from silently reviving an interpretation that was later corrected.
+
+`--exclude-retracted` removes only retracted hits. Historical hits remain visible
+with their status, original bytes and earlier receipts preserved.
 
 ## Research Receipts
 
