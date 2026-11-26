@@ -107,10 +107,15 @@ def _index(raw):
 
 
 def _local(engine, query, include_historical, limit):
+    from .workbench.controller import Workbench
+
     engine.store.require()
     sources = engine.store.sources()
     if len(sources) > MAX_LOCAL_SOURCES:
         raise ValueError("LOCAL_SOURCE_COUNT_LIMIT")
+    if any(not isinstance(source, dict) or not isinstance(source.get("metadata", {}), dict)
+           for source in sources):
+        raise ValueError("LOCAL_SOURCE_METADATA_INVALID")
     by_id = {source["source_id"]: source for source in sources}
     for source in sources:
         if not re.fullmatch(r"[0-9a-f]{64}", source["digest"]):
@@ -119,7 +124,15 @@ def _local(engine, query, include_historical, limit):
         if path.is_symlink() or not path.is_file() or path.stat().st_size > MAX_LOCAL_SOURCE_BYTES:
             raise ValueError("LOCAL_SOURCE_MISSING_OR_TOO_LARGE")
     hits = engine.search(query, limit=max(1, len(sources)), include_retracted=include_historical)
-    hits = [hit for hit in hits if include_historical or hit["status"] == "active"]
+    statuses = engine.store.status_map()
+    workbench = Workbench(engine.store.root)
+    eligible = []
+    for hit in hits:
+        effective = workbench.effective_status(hit["source_id"], statuses, by_id)
+        if include_historical or effective == "active":
+            eligible.append({**hit, "effective_status": effective,
+                             "usable_as_current": effective == "active"})
+    hits = eligible
     selected = []
     for hit in hits[:limit]:
         source = by_id[hit["source_id"]]
@@ -185,3 +198,22 @@ def network_search(engine, query, *, include_historical=False, limit=20, loader=
             result["scopes"][scope] = {"state": "ERROR", "error": code, "coverage": "NOT_SEARCHED_SUCCESSFULLY"}
             result["state"] = "PARTIAL"
     return result
+
+
+def compact_network_result(result):
+    """Project a completed search; keep ordering, scope errors and source identity."""
+    if not isinstance(result, dict) or result.get("contract") != "nova.network-search.v1":
+        raise ValueError("NETWORK_SEARCH_RESULT_INVALID")
+    hits = []
+    retained = ("id", "source_scope", "digest", "digest_scope", "status", "usable_as_current", "score")
+    for hit in result["hits"]:
+        label = hit.get("title", hit.get("locator", hit["id"]))
+        if isinstance(label, dict):
+            label = label.get("de", next(iter(label.values())))
+        excerpt = hit.get("excerpt", "")
+        hits.append({**{key: hit[key] for key in retained},
+                     "effective_status": hit.get("effective_status", hit["status"]), "label": label[:160],
+                     "label_truncated": len(label) > 160, "excerpt": excerpt[:240],
+                     "excerpt_truncated": len(excerpt) > 240})
+    return {**result, "contract": "nova.network-search.compact.v1",
+            "source_contract": result["contract"], "hits": hits}
