@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import re
 import subprocess
@@ -97,6 +98,9 @@ def inventory(store: NovaStore, owner: str, *, repo: str | None = None, ref: str
         data = base64.b64decode(blob["content"], validate=False)
         if len(data) > 100000:
             raise ValueError("GITHUB_BLOB_SIZE_CHANGED")
+        object_header = f"blob {len(data)}\0".encode("ascii")
+        if hashlib.sha1(object_header + data, usedforsecurity=False).hexdigest() != row["sha"]:
+            raise ValueError("GITHUB_BLOB_ID_MISMATCH")
         staged.append(("files/" + row["path"], data, ["github", "source"],
                        {"git_blob": row["sha"], "source_path": row["path"], "data_class": "INTERNAL_PSEUDONYMIZED"}))
     # All bounded GETs must complete before the prior reference selection changes.

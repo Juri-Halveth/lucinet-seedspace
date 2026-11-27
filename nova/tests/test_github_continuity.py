@@ -31,7 +31,7 @@ class GitHubContinuityTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def capture(self, revision, body, *, ref=None, fail_blob=False, on_blob=None, unbound_head=None):
+    def capture(self, revision, body, *, ref=None, fail_blob=False, on_blob=None, unbound_head=None, returned_body=None):
         def api(path, **kwargs):
             root = 'repos/Synthetic/Example'
             if path == root:
@@ -47,7 +47,8 @@ class GitHubContinuityTests(unittest.TestCase):
                     on_blob()
                 if fail_blob:
                     raise RuntimeError('SYNTHETIC_GITHUB_READ_FAILURE')
-                return {'content':base64.b64encode(body).decode(), 'encoding':'base64'}
+                data = body if returned_body is None else returned_body
+                return {'content':base64.b64encode(data).decode(), 'encoding':'base64'}
             if path.startswith(root + '/') and any(x in path for x in ('/branches?', '/pulls?', '/issues?', '/commits?')):
                 return []
             raise AssertionError(path)
@@ -112,6 +113,12 @@ class GitHubContinuityTests(unittest.TestCase):
             self.capture(B,NEW,fail_blob=True)
         after={p.relative_to(base).as_posix():p.read_bytes() for p in base.rglob('*') if p.is_file()}
         self.assertEqual(before,after)
+
+    def test_wrong_blob_bytes_do_not_replace_current_source(self):
+        self.capture(A, OLD)
+        with self.assertRaisesRegex(ValueError, 'GITHUB_BLOB_ID_MISMATCH'):
+            self.capture(B, NEW, returned_body=OLD)
+        self.assertEqual(self.statuses(), {('main', A): 'active'})
 
     def test_commit_lock_failure_preserves_retraction_and_all_workspace_bytes(self):
         self.capture(A,OLD)
