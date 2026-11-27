@@ -205,6 +205,28 @@ No automatic repository-wide write, issue submission, push or merge is part of
 the input adapter. Commit-pinned history metadata can still contain personal
 data; the resulting workspace stays local until a separate export decision.
 
+Each successful repository capture now binds its requested reference and
+resolved commit. The default `HEAD` and the explicit default branch share one
+current selection. A later successful capture of that reference marks its
+previously selected sources `superseded`; their exact bytes, commit bindings
+and earlier receipts remain available. Other branches keep separate selections.
+An explicit full commit SHA is a historical snapshot and does not change a
+branch's current selection. Here, "current" means the latest successful bounded
+capture of that reference, observed at the recorded time. It is not live GitHub
+monitoring or an assertion that every repository file was read.
+
+All bounded remote reads finish before that selection is changed. A failed
+remote read leaves the prior selection unchanged. Concurrent successful captures
+of the same reference require the older in-flight request to retry. The local
+JSONL store is still not a multi-file crash-atomic database.
+
+Older adapter records did not retain their requested reference. On the next
+successful branch capture, active unscoped records for that repository become
+`historical` with an explicit unknown-reference note. No branch is inferred from
+their commit alone. Retracted sources remain retracted. Reimporting an identical
+file at a new commit preserves both revision bindings even though its content
+object is deduplicated.
+
 ## Value flow
 
 ```bash
