@@ -34,6 +34,16 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("network-search", help="lokale Quellen und feste öffentliche Netzbeschreibungen gemeinsam durchsuchen")
     s.add_argument("query"); s.add_argument("--limit", type=int, default=20)
     s.add_argument("--include-historical", action="store_true", help="auch historische, ersetzte und zurückgezogene Treffer anzeigen")
+    s.add_argument("--compact", action="store_true", help="kleine Trefferkarten; Kennung, Digest, Status und Bereichsfehler bleiben erhalten")
+    s.add_argument("--local-only", action="store_true", help="ausschließlich den gewählten lokalen Workspace durchsuchen")
+
+    s = sub.add_parser("network-read", help="einen Suchtreffer mit erwartetem Digest gezielt und lesend auflösen")
+    s.add_argument("identifier"); s.add_argument("--expect-digest", required=True)
+    s.add_argument("--include-historical", action="store_true", help="inaktive Quellen ausdrücklich als historisch lesen")
+    s.add_argument("--offset", type=int, default=0, help="Start in Unicode-Codepunkten")
+    s.add_argument("--max-chars", type=int, default=6000, help="höchstens 32000 Unicode-Codepunkte")
+
+    sub.add_parser("source-tools", help="Definitionen der zwei lesenden Funktionswerkzeuge als JSON anzeigen")
 
     s = sub.add_parser("source-status", help="append source status event")
     s.add_argument("source_id"); s.add_argument("status", choices=sorted(SOURCE_STATUSES)); s.add_argument("--note", default=""); s.add_argument("--superseded-by")
@@ -144,10 +154,22 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "search":
             emit(engine.search(args.query, limit=args.limit, include_retracted=not args.exclude_retracted))
         elif args.command == "network-search":
-            from .network_search import network_search
-            result = network_search(engine, args.query, limit=args.limit, include_historical=args.include_historical)
+            from .network_search import compact_network_result, network_search
+            result = network_search(engine, args.query, limit=args.limit, include_historical=args.include_historical, local_only=args.local_only)
+            if args.compact:
+                result = compact_network_result(result)
             emit(result)
             return 0 if result["state"] == "OK" else 2
+        elif args.command == "network-read":
+            from .network_read import network_read
+            result = network_read(engine, args.identifier, args.expect_digest,
+                                  include_historical=args.include_historical,
+                                  offset=args.offset, max_chars=args.max_chars)
+            emit(result)
+            return 0 if result["state"] == "OK" else 2
+        elif args.command == "source-tools":
+            from .source_tools import source_tool_definitions
+            emit(source_tool_definitions())
         elif args.command == "source-status":
             emit(store.set_status(args.source_id, args.status, note=args.note, superseded_by=args.superseded_by))
         elif args.command == "relate":
@@ -214,8 +236,10 @@ def main(argv: list[str] | None = None) -> int:
             result = capabilities()
             try:
                 result["local_models"] = available_models()
-            except (OSError, ValueError):
+                result["local_model_inventory"] = {"state": "OK", "count": len(result["local_models"])}
+            except (OSError, ValueError) as error:
                 result["local_models"] = []
+                result["local_model_inventory"] = {"state": "ERROR", "error": type(error).__name__}
             emit(result)
         elif args.command == "apply-function":
             from .workbench.codegen import evaluate

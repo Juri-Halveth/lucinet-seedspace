@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import stat
 from datetime import datetime
 from http.client import HTTPException
 from urllib.error import HTTPError, URLError
@@ -106,30 +107,65 @@ def _index(raw):
     return index
 
 
+def _check_local_path(path):
+    try:
+        entry = path.lstat()
+    except FileNotFoundError:
+        return
+    if stat.S_ISLNK(entry.st_mode) or getattr(entry, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT:
+        raise ValueError("LOCAL_SOURCE_SYMLINK")
+    return entry
+
+
+def _check_workspace_paths(store):
+    for path in (store.root, store.nova, store.objects, store.config_path, store.sources_path, store.source_events_path):
+        _check_local_path(path)
+
+
 def _local(engine, query, include_historical, limit):
+    from .workbench.controller import Workbench
+
+    _check_workspace_paths(engine.store)
     engine.store.require()
     sources = engine.store.sources()
     if len(sources) > MAX_LOCAL_SOURCES:
         raise ValueError("LOCAL_SOURCE_COUNT_LIMIT")
+    if any(not isinstance(source, dict) or not isinstance(source.get("metadata", {}), dict)
+           for source in sources):
+        raise ValueError("LOCAL_SOURCE_METADATA_INVALID")
     by_id = {source["source_id"]: source for source in sources}
     for source in sources:
         if not re.fullmatch(r"[0-9a-f]{64}", source["digest"]):
             raise ValueError("LOCAL_SOURCE_DIGEST_INVALID")
         path = engine.store.objects / source["digest"]
-        if path.is_symlink() or not path.is_file() or path.stat().st_size > MAX_LOCAL_SOURCE_BYTES:
+        _check_local_path(path)
+        if not path.is_file() or path.stat().st_size > MAX_LOCAL_SOURCE_BYTES:
             raise ValueError("LOCAL_SOURCE_MISSING_OR_TOO_LARGE")
     hits = engine.search(query, limit=max(1, len(sources)), include_retracted=include_historical)
-    hits = [hit for hit in hits if include_historical or hit["status"] == "active"]
+    statuses = engine.store.status_map()
+    workbench = Workbench(engine.store.root)
+    eligible = []
+    for hit in hits:
+        effective = workbench.effective_status(hit["source_id"], statuses, by_id)
+        if include_historical or effective == "active":
+            eligible.append({**hit, "effective_status": effective,
+                             "usable_as_current": effective == "active"})
+    hits = eligible
     selected = []
     for hit in hits[:limit]:
         source = by_id[hit["source_id"]]
-        with (engine.store.objects / hit["digest"]).open("rb") as stream:
+        path = engine.store.objects / hit["digest"]
+        _check_local_path(path)
+        with path.open("rb") as stream:
             raw = stream.read(MAX_LOCAL_SOURCE_BYTES + 1)
         if len(raw) > MAX_LOCAL_SOURCE_BYTES or hashlib.sha256(raw).hexdigest() != hit["digest"]:
             raise ValueError("LOCAL_SOURCE_BYTES_CHANGED")
         selected.append({**hit, "id": "local:" + hit["source_id"], "source_scope": "local_source",
                          "revision": hit["source_id"], "observedAt": source["added_at"],
                          "digest_scope": "LOCAL_STORED_SOURCE_BYTES"})
+    _check_workspace_paths(engine.store)
+    if sources != engine.store.sources() or statuses != engine.store.status_map():
+        raise ValueError("LOCAL_SOURCE_METADATA_CHANGED")
     return selected, {"state": "OK", "source_records": len(sources), "matched": len(hits),
                       "returned": len(selected), "truncated": len(hits) > limit,
                       "coverage": "EXPLICITLY_INGESTED_WORKSPACE_SOURCES_ONLY"}
@@ -164,15 +200,22 @@ def _public(raw, query, include_historical, limit):
                           "coverage": "PUBLIC_INDEX_DESCRIPTIONS_ONLY_NOT_REPOSITORY_FULL_TEXT"}
 
 
-def network_search(engine, query, *, include_historical=False, limit=20, loader=None):
+def network_search(engine, query, *, include_historical=False, limit=20, loader=None, local_only=False):
     """Der injizierbare Loader ist nur eine Python-Testnaht, kein frei wählbarer URL-Parameter."""
-    if not isinstance(query, str) or not query.strip() or len(query) > 512 or type(include_historical) is not bool or type(limit) is not int or not 1 <= limit <= 100:
+    if (not isinstance(query, str) or not query.strip() or len(query) > 512
+            or type(include_historical) is not bool or type(local_only) is not bool
+            or type(limit) is not int or not 1 <= limit <= 100):
         raise ValueError("NETWORK_SEARCH_QUERY_OR_LIMIT_INVALID")
     result = {"contract": "nova.network-search.v1", "query": query, "searchedAt": utc_now(),
               "include_historical": include_historical, "limit_per_scope": limit,
               "endpoint": PUBLIC_INDEX_URL, "state": "OK", "scopes": {}, "hits": [],
               "coverage": "DECLARED_WORKSPACE_AND_PUBLIC_INDEX_ONLY; UNINDEXED_FILES_UNKNOWN"}
-    for scope in ("local_source", "public_description"):
+    scopes = ("local_source", "public_description")
+    if local_only:
+        result["endpoint"] = None
+        result["coverage"] = "EXPLICITLY_INGESTED_WORKSPACE_SOURCES_ONLY"
+        scopes = ("local_source",)
+    for scope in scopes:
         try:
             hits, coverage = (_local(engine, query, include_historical, limit) if scope == "local_source"
                               else _public((loader or _load_public_index)(), query, include_historical, limit))
@@ -180,8 +223,29 @@ def network_search(engine, query, *, include_historical=False, limit=20, loader=
             result["scopes"][scope] = coverage
         except (ValueError, RuntimeError, OSError, URLError, HTTPException, UnicodeError, RecursionError, KeyError, TypeError) as error:
             code = "PUBLIC_HTTP_" + str(error.code) if isinstance(error, HTTPError) else type(error).__name__
+            if isinstance(error, HTTPError):
+                error.close()
             if isinstance(error, ValueError) and re.fullmatch(r"[A-Z_]+", str(error)):
                 code = str(error)
             result["scopes"][scope] = {"state": "ERROR", "error": code, "coverage": "NOT_SEARCHED_SUCCESSFULLY"}
             result["state"] = "PARTIAL"
     return result
+
+
+def compact_network_result(result):
+    """Project a completed search; keep ordering, scope errors and source identity."""
+    if not isinstance(result, dict) or result.get("contract") != "nova.network-search.v1":
+        raise ValueError("NETWORK_SEARCH_RESULT_INVALID")
+    hits = []
+    retained = ("id", "source_scope", "digest", "digest_scope", "status", "usable_as_current", "score")
+    for hit in result["hits"]:
+        label = hit.get("title", hit.get("locator", hit["id"]))
+        if isinstance(label, dict):
+            label = label.get("de", next(iter(label.values())))
+        excerpt = hit.get("excerpt", "")
+        hits.append({**{key: hit[key] for key in retained},
+                     "effective_status": hit.get("effective_status", hit["status"]), "label": label[:160],
+                     "label_truncated": len(label) > 160, "excerpt": excerpt[:240],
+                     "excerpt_truncated": len(excerpt) > 240})
+    return {**result, "contract": "nova.network-search.compact.v1",
+            "source_contract": result["contract"], "hits": hits}

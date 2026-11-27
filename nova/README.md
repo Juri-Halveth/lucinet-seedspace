@@ -205,6 +205,30 @@ Socket-Timeout von acht Sekunden. Größen-, Schema- und Integritätsfehler werd
 als Fehler des betroffenen Bereichs ausgewiesen. Die Ausgabe bleibt lokal im
 Terminal; der Befehl speichert oder veröffentlicht sie nicht automatisch.
 
+### Einen Treffer gezielt lesen
+
+`network-search --compact` liefert eine kleine Auswahlansicht mit derselben
+Trefferreihenfolge, ID, Prüfsumme, Status und allen Scope-Fehlern. Mit der ID und
+dem Digest eines Treffers lässt sich anschließend genau dieser Eintrag lesen:
+
+```bash
+python nova/nova.py --workspace ./research network-search "NOVA" --compact --limit 5
+python nova/nova.py --workspace ./research network-read '<id-aus-dem-treffer>' --expect-digest '<digest-aus-dem-treffer>' --max-chars 6000
+python nova/nova.py source-tools
+```
+
+Die Platzhalter im zweiten Befehl werden durch die unveränderten Werte des
+gewählten Treffers ersetzt. Der Leseweg prüft Bytes und aktuellen Status erneut;
+bei lokalen Ableitungen berücksichtigt er auch den Status ihrer Ausgangsquelle.
+Eine Rücknahme kann den Status ändern, obwohl die Prüfsumme gleich bleibt.
+Ein öffentlicher Treffer enthält die Beschreibung aus dem Index. Seine
+Prüfsumme bestätigt keine vollständige Repository-Datei.
+
+Der Hostadapter `NovaSourceTools` stellt dafür zwei eng begrenzte Funktionen mit
+strikten JSON-Schemata bereit. Er enthält keinen Modellclient und tätigt keinen
+OpenAI-API-Aufruf. [Befehle, Ergebniszustände und Einbindung](SOURCE_TOOLS.md)
+beschreiben den vollständigen Anschluss.
+
 ## Workspace format
 
 NOVA creates a `.nova/` directory inside the chosen workspace:
