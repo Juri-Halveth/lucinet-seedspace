@@ -43,16 +43,14 @@ class NovaEngine:
         if mode not in RUN_MODES:
             raise ValueError(f"invalid mode: {mode}")
         hits = self.search(query, limit=limit, include_retracted=True)
-        source_map = {s["source_id"]: s for s in self.store.sources()}
         status_map = self.store.status_map()
         bindings = []
         for hit in hits:
-            src = source_map[hit["source_id"]]
             bindings.append({
-                "source_id": src["source_id"],
-                "locator": src["locator"],
-                "digest": src["digest"],
-                "status": status_map[src["source_id"]]["status"],
+                "source_id": hit["source_id"],
+                "locator": hit["locator"],
+                "digest": hit["digest"],
+                "status": status_map[hit["source_id"]]["status"],
                 "score": hit["score"],
                 "line_start": hit["line_start"],
                 "line_end": hit["line_end"],
