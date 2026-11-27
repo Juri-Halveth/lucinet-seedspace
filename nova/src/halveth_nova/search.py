@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
+from .jsonutil import sha256_bytes
+
 STATUS_WEIGHT = {
     "active": 1.0,
     "historical": 0.82,
@@ -109,10 +111,19 @@ def search_sources(
         status = statuses.get(sid, {"status": "active"})["status"]
         if status == "retracted" and not include_retracted:
             continue
-        obj = object_dir / record["digest"]
+        digest = record["digest"]
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise ValueError("INVALID_SOURCE_ADDRESS")
+        obj = object_dir / digest
         if not obj.is_file():
             continue
-        content = obj.read_bytes()
+        expected_size = record["byte_length"]
+        if type(expected_size) is not int or expected_size != obj.stat().st_size:
+            raise ValueError("LOCAL_SOURCE_BYTES_CHANGED")
+        with obj.open("rb") as stream:
+            content = stream.read(expected_size + 1)
+        if len(content) != expected_size or sha256_bytes(content) != digest:
+            raise ValueError("LOCAL_SOURCE_BYTES_CHANGED")
         haystack, is_text = searchable_text(record["locator"], record.get("tags", []), record.get("metadata", {}), content)
         score = score_candidate(query, haystack, status)
         if score <= 0:

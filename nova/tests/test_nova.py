@@ -50,6 +50,21 @@ class NovaTests(unittest.TestCase):
         self.assertIn("Äquivalenzstraße", hit["excerpt"])
         self.assertEqual(hit["line_start"], 1)
 
+    def test_changed_object_cannot_supply_search_or_research_evidence(self):
+        source = self.engine.ingest(self.write("source.txt", "alpha"))[0]
+        obj = self.engine.store.objects / source["digest"]
+        for changed in (b"bravo", b"longer content"):
+            with self.subTest(changed=changed):
+                obj.write_bytes(changed)
+                with self.assertRaisesRegex(ValueError, "LOCAL_SOURCE_BYTES_CHANGED"):
+                    self.engine.search("source.txt")
+                with self.assertRaisesRegex(ValueError, "LOCAL_SOURCE_BYTES_CHANGED"):
+                    self.engine.run("source.txt")
+                self.assertEqual(self.engine.store.ledger(), [])
+        obj.write_bytes(b"alpha")
+        receipt = self.engine.run("alpha")["receipt"]
+        self.assertEqual(receipt["input_sources"][0]["digest"], source["digest"])
+
     def test_binary_source_is_hashable_and_metadata_searchable(self):
         p = self.root / "red-star.png"
         p.write_bytes(b"\x89PNG\r\n\x1a\nFAKE")
