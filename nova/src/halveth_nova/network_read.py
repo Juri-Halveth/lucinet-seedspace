@@ -19,6 +19,8 @@ from .network_search import (
     MAX_LOCAL_SOURCE_BYTES,
     MAX_LOCAL_SOURCES,
     PUBLIC_INDEX_URL,
+    _check_local_path,
+    _check_workspace_paths,
     _index,
     _load_public_index,
 )
@@ -65,6 +67,7 @@ def _eligibility(result, expected_digest, include_historical):
 
 
 def _local_snapshot(store):
+    _check_workspace_paths(store)
     rows = store.sources()
     if not isinstance(rows, list) or len(rows) > MAX_LOCAL_SOURCES:
         raise ValueError("LOCAL_SOURCE_COUNT_LIMIT")
@@ -93,12 +96,10 @@ def _local_bytes(store, source):
             or type(size) is not int or not 0 <= size <= MAX_LOCAL_SOURCE_BYTES):
         raise ValueError("LOCAL_SOURCE_METADATA_INVALID")
     path = store.objects / digest
-    if store.nova.is_symlink() or store.objects.is_symlink() or path.is_symlink():
-        raise ValueError("LOCAL_SOURCE_SYMLINK")
-    try:
-        before = path.lstat()
-    except FileNotFoundError:
-        raise ValueError("LOCAL_SOURCE_MISSING_OR_TOO_LARGE") from None
+    _check_workspace_paths(store)
+    before = _check_local_path(path)
+    if before is None:
+        raise ValueError("LOCAL_SOURCE_MISSING_OR_TOO_LARGE")
     if not stat.S_ISREG(before.st_mode) or before.st_size > MAX_LOCAL_SOURCE_BYTES:
         raise ValueError("LOCAL_SOURCE_MISSING_OR_TOO_LARGE")
     with path.open("rb") as stream:
@@ -107,9 +108,9 @@ def _local_bytes(store, source):
                 or (opened.st_dev, opened.st_ino) != (before.st_dev, before.st_ino)):
             raise ValueError("LOCAL_SOURCE_OBJECT_CHANGED_DURING_READ")
         raw = stream.read(MAX_LOCAL_SOURCE_BYTES + 1)
-    after = path.lstat()
-    if stat.S_ISLNK(after.st_mode):
-        raise ValueError("LOCAL_SOURCE_SYMLINK")
+    after = _check_local_path(path)
+    if after is None:
+        raise ValueError("LOCAL_SOURCE_OBJECT_CHANGED_DURING_READ")
     if ((after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
             != (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)):
         raise ValueError("LOCAL_SOURCE_OBJECT_CHANGED_DURING_READ")
@@ -126,6 +127,7 @@ def _local_read(engine, result, expected_digest, include_historical, offset, max
     from .workbench.controller import Workbench
 
     store = engine.store
+    _check_workspace_paths(store)
     store.require()
     sources, statuses = _local_snapshot(store)
     sid = result["source_id"]
@@ -135,12 +137,6 @@ def _local_read(engine, result, expected_digest, include_historical, offset, max
     # Construction only binds the same workspace paths; it does not initialize
     # files or run a controller. Pass the already read records explicitly.
     effective = Workbench(store.root).effective_status(sid, statuses, sources)
-    raw = _local_bytes(store, source)
-    # This detects observed changes, not a guaranteed atomic transaction: no
-    # lock file, receipt or auto-initialization is created by this read path.
-    current_sources, current_statuses = _local_snapshot(store)
-    if sources != current_sources or statuses != current_statuses:
-        raise ValueError("LOCAL_SOURCE_METADATA_CHANGED")
     observed = source.get("added_at")
     locator = source.get("locator")
     if (not isinstance(observed, str) or not observed or len(observed) > 64
@@ -158,6 +154,10 @@ def _local_read(engine, result, expected_digest, include_historical, offset, max
     rejected = _eligibility(result, expected_digest, include_historical)
     if rejected is not None:
         return rejected
+    raw = _local_bytes(store, source)
+    current_sources, current_statuses = _local_snapshot(store)
+    if sources != current_sources or statuses != current_statuses:
+        raise ValueError("LOCAL_SOURCE_METADATA_CHANGED")
     try:
         text = raw.decode("utf-8", errors="strict")
     except UnicodeDecodeError:
@@ -194,6 +194,7 @@ def _error_code(error, public):
     if isinstance(error, ValueError) and re.fullmatch(r"[A-Z][A-Z0-9_]{0,99}", str(error)):
         return str(error)
     if isinstance(error, HTTPError):
+        error.close()
         return "PUBLIC_HTTP_" + str(error.code)
     if isinstance(error, (HTTPException, URLError)):
         return "PUBLIC_TRANSPORT_ERROR" if public else "LOCAL_SOURCE_READ_ERROR"

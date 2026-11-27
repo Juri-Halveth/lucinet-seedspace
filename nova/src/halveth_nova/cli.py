@@ -35,6 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("query"); s.add_argument("--limit", type=int, default=20)
     s.add_argument("--include-historical", action="store_true", help="auch historische, ersetzte und zurückgezogene Treffer anzeigen")
     s.add_argument("--compact", action="store_true", help="kleine Trefferkarten; Kennung, Digest, Status und Bereichsfehler bleiben erhalten")
+    s.add_argument("--local-only", action="store_true", help="ausschließlich den gewählten lokalen Workspace durchsuchen")
 
     s = sub.add_parser("network-read", help="einen Suchtreffer mit erwartetem Digest gezielt und lesend auflösen")
     s.add_argument("identifier"); s.add_argument("--expect-digest", required=True)
@@ -154,7 +155,7 @@ def main(argv: list[str] | None = None) -> int:
             emit(engine.search(args.query, limit=args.limit, include_retracted=not args.exclude_retracted))
         elif args.command == "network-search":
             from .network_search import compact_network_result, network_search
-            result = network_search(engine, args.query, limit=args.limit, include_historical=args.include_historical)
+            result = network_search(engine, args.query, limit=args.limit, include_historical=args.include_historical, local_only=args.local_only)
             if args.compact:
                 result = compact_network_result(result)
             emit(result)

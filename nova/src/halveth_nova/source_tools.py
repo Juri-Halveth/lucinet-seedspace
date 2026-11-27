@@ -42,9 +42,12 @@ def source_tool_definitions():
 class NovaSourceTools:
     """Workspace and optional fixture loader are chosen by the host, never tool arguments."""
 
-    def __init__(self, engine, *, loader=None):
+    def __init__(self, engine, *, loader=None, local_only=True):
+        if type(local_only) is not bool:
+            raise ValueError("SOURCE_TOOL_SCOPE_INVALID")
         self.engine = engine
         self.loader = loader
+        self.local_only = local_only
 
     def dispatch(self, name, arguments):
         """Dispatch only declared functions. Invalid input never reaches a source read."""
@@ -59,7 +62,9 @@ class NovaSourceTools:
             if not isinstance(args, dict) or set(args) != set(required):
                 raise ValueError("SOURCE_TOOL_ARGUMENT_INVALID")
             if name == "nova_search_sources":
-                return compact_network_result(network_search(self.engine, loader=self.loader, **args))
+                return compact_network_result(network_search(self.engine, loader=self.loader, local_only=self.local_only, **args))
+            if self.local_only and isinstance(args["identifier"], str) and args["identifier"].startswith("public:"):
+                return self._error("PUBLIC_SCOPE_DISABLED")
             return network_read(self.engine, loader=self.loader, **args)
         except (ValueError, TypeError, UnicodeError, RecursionError):
             # Do not echo raw caller content or arbitrary exception messages.

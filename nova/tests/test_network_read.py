@@ -3,9 +3,11 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import stat
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from halveth_nova.engine import NovaEngine
@@ -269,6 +271,19 @@ class NetworkReadTests(unittest.TestCase):
         except (OSError, NotImplementedError) as error:
             self.skipTest("symlinks unavailable: " + type(error).__name__)
         self.assert_rejected(self.local_read(), "ERROR", "LOCAL_SOURCE_SYMLINK")
+
+    def test_reparse_metadata_is_refused_before_store_load(self):
+        source_index = self.engine.store.sources_path
+        lstat = Path.lstat
+
+        def stat_fixture(path):
+            if path == source_index:
+                return SimpleNamespace(st_mode=stat.S_IFREG, st_file_attributes=stat.FILE_ATTRIBUTE_REPARSE_POINT)
+            return lstat(path)
+
+        with patch.object(Path, "lstat", stat_fixture), patch.object(self.engine.store, "sources") as sources:
+            self.assert_rejected(self.local_read(), "ERROR", "LOCAL_SOURCE_SYMLINK")
+            sources.assert_not_called()
 
     def test_binary_source_is_not_lossily_presented_as_verified_text(self):
         binary = self.engine.store.ingest_bytes("binary.bin", b"GG24\xff\xfe\x00")

@@ -24,7 +24,7 @@ class SourceToolTests(unittest.TestCase):
         self.engine.init("source-tool-test")
         self.source = self.engine.store.ingest_bytes("gg24.txt", b"GG24 exact local evidence")
         self.loader = Mock(return_value=public_index())
-        self.tools = NovaSourceTools(self.engine, loader=self.loader)
+        self.tools = NovaSourceTools(self.engine, loader=self.loader, local_only=False)
 
     def snapshot(self):
         return {str(p.relative_to(self.root)): p.read_bytes() for p in self.root.rglob("*") if p.is_file()}
@@ -41,6 +41,16 @@ class SourceToolTests(unittest.TestCase):
         self.assertEqual(detail["content"]["text"], "GG24 exact local evidence")
         self.loader.assert_not_called()
         self.assertEqual(before, self.snapshot())
+
+    def test_default_host_never_opens_the_public_index(self):
+        tools = NovaSourceTools(self.engine, loader=self.loader)
+        result = tools.dispatch("nova_search_sources", json.dumps({"query":"GG24", "limit":5, "include_historical":False}))
+        self.assertEqual(set(result["scopes"]), {"local_source"})
+        self.assertIsNone(result["endpoint"])
+        denied = tools.dispatch("nova_read_source", json.dumps({"identifier":"public:selected", "expected_digest":"0" * 64,
+            "include_historical":False, "offset":0, "max_chars":6000}))
+        self.assertEqual(denied["error"], "PUBLIC_SCOPE_DISABLED")
+        self.loader.assert_not_called()
 
     def test_strict_definitions_are_fresh_and_match_dispatch(self):
         definitions = source_tool_definitions()

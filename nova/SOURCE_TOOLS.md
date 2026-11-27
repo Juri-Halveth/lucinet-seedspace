@@ -120,7 +120,7 @@ Die Definitionen folgen dem Function-Tool-Format der OpenAI Responses API mit
 [Offizielle Function-Calling-Dokumentation](https://developers.openai.com/api/docs/guides/function-calling)
 beschreibt die Registrierung und die Übergabe von Ergebnissen durch den Host.
 
-Die lokale Ausführung benötigt keinen OpenAI-API-Schlüssel:
+Der Host-Dispatcher durchsucht standardmäßig den gewählten Workspace. Die CLI bietet dafür `network-search --local-only`. Ein Host kann mit `local_only=False` zusätzlich den bereits festgelegten öffentlichen HALVETH-Index auswählen.
 
 ```python
 import json
